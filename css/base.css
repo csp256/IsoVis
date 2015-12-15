@@ -1,0 +1,42 @@
+
+body
+{
+	font-family: Monospace;
+	font-weight: bold;
+	background-color: #34302f;
+	margin: 0px;
+	overflow: hidden;
+}
+
+button {
+	border: 2px solid #34302f;
+	background: #2c2827;
+	color: #8F938F;
+	line-height: 1.5;
+	font-size: 12px;
+}
+
+.toolbar {
+	border: 2px solid #2c2827;
+	background: #34302f;
+
+}
+
+.divider {
+    width:5px;
+    height:auto;
+    display:inline-block;
+}
+
+#leftGUI {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+}
+
+#toolbar {
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				text-align: left;
+}
