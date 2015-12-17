@@ -4,10 +4,11 @@ function initParams() {
   this.shapeParams = {
     editCode: false,
     editorWidth: (window.innerWidth*0.25),
-		resolution: 25,
+		resolution: 30,
     reset: false,
 		iso: 5,
 		parameters: [],
+    interpolate: true,
     maxCoeffCount: 32,
     coeffCount: 5,
     coeff: [3.5, 3, 1.5, 3, 0],
@@ -30,6 +31,7 @@ function initParams() {
   };
 
   this.materialParams = {
+    calcNormals: true,
     material: 4,
 		opacity: 0.15,
 		side: 0,
@@ -53,10 +55,4 @@ function initParams() {
     resetOrientation: false,
     popAllTransforms: false,
   };
-
-	//	params[parameters + ] 3 );
-	//params.parameters.push( 3.5 );
-	//params.parameters.push( 3 );
-	//params.parameters.push( 1.5 );
-	//params.parameters.push( 0 );
 }

@@ -50,7 +50,8 @@ function shapeFolder(g) {
   var folder = g.addFolder('Shape');
   folder.add(shapeParams, 'editorWidth').min(0).max(window.innerWidth*0.5 /* - Math.min(245, 2*parseInt(leftgui.domElement.style.width)) */).step(1).onFinishChange( updateEditor );
   folder.add(shapeParams, 'resolution').min(0).max(65).step(1).onFinishChange( setSizeDirty );
-  folder.add(shapeParams, 'reset').onChange( resetWorker10 );
+  folder.add(shapeParams, 'reset').name('Abort!').onChange( resetWorker10 );
+  folder.add(shapeParams, 'interpolate').onChange( setMeshDirty );
   folder.add(shapeParams, 'iso').onChange( setMeshDirty );
   folder.add(shapeParams, 'coeffCount').min(1).max(shapeParams.maxCoeffCount).step(1).onChange( updateCoeff );
   var subFolder = folder.addFolder('Coefficients');
@@ -75,8 +76,14 @@ function cameraFolder(g) {
   folder.add(cameraParams, 'fps').onChange( updateStats );
 }
 
+function toggleNormals() { // This might make the mesh invisible... best to do that when they click it and not when they change the iso next...
+  setMeshDirty();
+  updateMaterial();
+}
+
 function materialFolder(g) {
   var folder = g.addFolder('Material');
+  folder.add(materialParams, 'calcNormals').onChange( toggleNormals );
 	folder.add(materialParams, 'material', {Basic:0, Depth:1, /*Face:2,*/ Lambert:3, Normals:4, Phong:5}).onChange( updateMaterial );
 	folder.add(materialParams, 'blending', {None:THREE.NoBlending, Standard:THREE.NormalBlending, Additive:THREE.AdditiveBlending, Subtractive:THREE.SubtractiveBlending, Multiplicative:THREE.MultiplyBlending, Custom:THREE.CustomBlending}).onChange( updateMaterial );
 	folder.add(materialParams, 'side', {Front:THREE.FrontSide, Back:THREE.BackSide, Both:THREE.DoubleSide}).onChange( updateMaterial );

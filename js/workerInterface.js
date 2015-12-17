@@ -3,7 +3,7 @@ function talkToWorker(msg) {
 		document.title = titleBusy;
 		console.time("All Workers");
 		var R = computeFullTransform();
-    var outgoing = {num: 0, messageType:msg, R: R, n: n, params: shapeParams};
+    var outgoing = {num: 0, messageType:msg, R: R, n: n, params: shapeParams, calcNormals: materialParams.calcNormals};
     if (msg == 'code') {
 			// All but the last line... yes the indexing is weird but correct.
       outgoing.code = myCodeMirror.getRange({line: 1, ch: 0}, {line: myCodeMirror.lineCount()-2, ch: Infinity});
@@ -38,7 +38,7 @@ function handleWorkerMessage(e) {
 	waitingForWebWorker[octant] = false;
 	if (!waitingForAnyWebWorker()) {
 		document.title = title;
-		//console.timeEnd("All Workers");
+		console.timeEnd("All Workers");
 	}
 	resetScenes();
 }
