@@ -1,6 +1,6 @@
 // Ran once to make look up table.
 function makeLUT() {
-  var input = new Int32Array([
+  var inp = new Int32Array([
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   0, 1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -268,5 +268,5 @@ function makeLUT() {
       }
     }
   }
-
+  return faceCount;
 }

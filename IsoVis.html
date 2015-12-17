@@ -31,6 +31,7 @@
 		<script src="lib/codemirror.js"></script>
 		<script src="lib/javascriptMode.js"></script>
 
+		<script src='js/misc.js'></script>
 		<script src='js/workerInterface.js'></script>
 		<script src='js/transforms.js'></script>
 		<script src='js/ui.js'></script>
@@ -241,6 +242,9 @@
 		  onmessage = function(e) {
 	    	console.time('Worker ' + e.data.num + ' Task');
 	    	switch (e.data.messageType) {
+	    		case 'echo':
+	    			self.postMessage( e.data.num );
+	    		break;
 	    		case  'init':
 	    			setup(e.data.n, e.data.params.resolution, e.data.num);
 	    			this.rebuildCoords = new Function('R', updateCoordsFunction(e.data.n, e.data.params.resolution));
@@ -251,25 +255,21 @@
 	    		case 'scalarField':
 	    			rebuildScalarField(e.data.params.coeff, e.data.num);
 	    		case 'geometry':
-		//				var geom = marchingCubes( points, values, e.data.params.iso );
-	//					console.log(geom);
-//						console.log(e.data.num.toString() + ': ' + bufferedPolygonalization( points, values, e.data.params.iso, e.data.num ).toString() + ' final');
-	    			reply(e.data.num,  marchingCubes( points, values, e.data.params.iso, e.data.params.interpolate, e.data.calcNormals ));
+	    			reply(e.data.num, marchingCubes( points, values, e.data.params.iso, e.data.params.interpolate, e.data.calcNormals ));
 	    		break;
 	    		default:
 	    			console.log('ERROR');
 	    		break;
 	    	}
-		  	//console.timeEnd('Worker ' + e.data.num + ' Task');
+		  	console.timeEnd('Worker ' + e.data.num + ' Task');
 		  }
 
 		  function reply(num, geom) {
 		  	self.postMessage( {num: num, geom: geom} );
 		  }
-
 		</script>
 
-		<script type='text/worker' id='three'>
+	<script type='text/worker' id='three'>
 		// threejs.org/license
 		'use strict';var THREE={REVISION:"73"};"function"===typeof define&&define.amd?define("three",THREE):"undefined"!==typeof exports&&"undefined"!==typeof module&&(module.exports=THREE);
 		void 0!==self.requestAnimationFrame&&void 0!==self.cancelAnimationFrame||function(){for(var a=0,b=["ms","moz","webkit","o"],c=0;c<b.length&&!self.requestAnimationFrame;++c)self.requestAnimationFrame=self[b[c]+"RequestAnimationFrame"],self.cancelAnimationFrame=self[b[c]+"CancelAnimationFrame"]||self[b[c]+"CancelRequestAnimationFrame"];void 0===self.requestAnimationFrame&&void 0!==self.setTimeout&&(self.requestAnimationFrame=function(b){var c=Date.now(),g=Math.max(0,16-(c-a)),f=self.setTimeout(function(){b(c+
@@ -1140,7 +1140,7 @@
 		THREE.MorphBlendMesh.prototype.getAnimationDuration=function(a){var b=-1;if(a=this.animationsMap[a])b=a.duration;return b};THREE.MorphBlendMesh.prototype.playAnimation=function(a){var b=this.animationsMap[a];b?(b.time=0,b.active=!0):console.warn("THREE.MorphBlendMesh: animation["+a+"] undefined in .playAnimation()")};THREE.MorphBlendMesh.prototype.stopAnimation=function(a){if(a=this.animationsMap[a])a.active=!1};
 		THREE.MorphBlendMesh.prototype.update=function(a){for(var b=0,c=this.animationsList.length;b<c;b++){var d=this.animationsList[b];if(d.active){var e=d.duration/d.length;d.time+=d.direction*a;if(d.mirroredLoop){if(d.time>d.duration||0>d.time)d.direction*=-1,d.time>d.duration&&(d.time=d.duration,d.directionBackwards=!0),0>d.time&&(d.time=0,d.directionBackwards=!1)}else d.time%=d.duration,0>d.time&&(d.time+=d.duration);var g=d.start+THREE.Math.clamp(Math.floor(d.time/e),0,d.length-1),f=d.weight;g!==d.currentFrame&&
 		(this.morphTargetInfluences[d.lastFrame]=0,this.morphTargetInfluences[d.currentFrame]=1*f,this.morphTargetInfluences[g]=0,d.lastFrame=d.currentFrame,d.currentFrame=g);e=d.time%e/e;d.directionBackwards&&(e=1-e);d.currentFrame!==d.lastFrame?(this.morphTargetInfluences[d.currentFrame]=e*f,this.morphTargetInfluences[d.lastFrame]=(1-e)*f):this.morphTargetInfluences[d.currentFrame]=f}}};
-		</script>
+	</script>
 
 		<script type='text/worker' id='marchingCubes'>
 		  /**
@@ -1165,13 +1165,12 @@
 		  	// Vertices may occur along edges of cube, when the values at the edge's endpoints
 		  	//   straddle the isolevel value.
 		  	// Actual position along edge weighted according to function values.
-		  	this.vlist = new Array(12);
-				for (var i=0; i<12; i++) {
-					vlist[i] = new THREE.Vector3();
-				}
-				//console.log(vlist);
+		  	var vlist = new Array(12);
+				for (var i=0;i<12;i++) vlist[i] = new THREE.Vector3();
+
 		  	var geometry = new THREE.Geometry();
 		  	var vertexIndex = 0;
+
 				var count = 0;
 		  	for (var z = 0; z < size - 1; z++) {
 				  for (var y = 0; y < size - 1; y++) {
@@ -1271,101 +1270,95 @@
 								if (bits &  256) vlist[ 8].copy(vlist[ 9]);
 								if (bits & 2048) vlist[11].copy(vlist[10]);
 							}
-
 							if (interpolate) {
 								if ( bits & 1 )	{
 									mu = ( iso - value0 ) / ( value1 - value0 );
 									vlist[0].copy(points[p]).lerp( points[px], mu );
 								}
-					  		// bottom of the cube (z up)
-					  		if ( bits & 2 )	{
-					  			mu = ( iso - value1 ) / ( value3 - value1 );
-					  			vlist[1].copy(points[px]).lerp( points[pxy], mu ); // p py
-					  		}
-					  		if ( bits & 4 )	{
-					  			mu = ( iso - value2 ) / ( value3 - value2 );
-					  			vlist[2].copy(points[py]).lerp( points[pxy], mu );
-					  		}
-					  		// top of the cube (z up)
-					  		if ( bits & 16 ) {
-					  			mu = ( iso - value4 ) / ( value5 - value4 );
-					  			vlist[4].copy(points[pz]).lerp( points[pxz], mu );
-					  		}
-					  		if ( bits & 32 ) {
-					  			mu = ( iso - value5 ) / ( value7 - value5 );
-					  			vlist[5].copy(points[pxz]).lerp( points[pxyz], mu );
-					  		}
-					  		if ( bits & 64 ) {
-					  			mu = ( iso - value6 ) / ( value7 - value6 );
-					  			vlist[6].copy(points[pyz]).lerp( points[pxyz], mu );
-					  		}
-					  		// vertical lines of the cube
-					  		if ( bits & 512 ) {
-					  			mu = ( iso - value1 ) / ( value5 - value1 );
-					  			vlist[9].copy(points[px]).lerp( points[pxz], mu );
-					  		}
-					  		if ( bits & 1024 ) {
-					  			mu = ( iso - value3 ) / ( value7 - value3 );
-					  			vlist[10].copy(points[pxy]).lerp( points[pxyz], mu );
-					  		}
+								// bottom of the cube (z up)
+								if ( bits & 2 )	{
+									mu = ( iso - value1 ) / ( value3 - value1 );
+									vlist[1].copy(points[px]).lerp( points[pxy], mu ); // p py
+								}
+								if ( bits & 4 )	{
+									mu = ( iso - value2 ) / ( value3 - value2 );
+									vlist[2].copy(points[py]).lerp( points[pxy], mu );
+								}
+								// top of the cube (z up)
+								if ( bits & 16 ) {
+									mu = ( iso - value4 ) / ( value5 - value4 );
+									vlist[4].copy(points[pz]).lerp( points[pxz], mu );
+								}
+								if ( bits & 32 ) {
+									mu = ( iso - value5 ) / ( value7 - value5 );
+									vlist[5].copy(points[pxz]).lerp( points[pxyz], mu );
+								}
+								if ( bits & 64 ) {
+									mu = ( iso - value6 ) / ( value7 - value6 );
+									vlist[6].copy(points[pyz]).lerp( points[pxyz], mu );
+								}
+								// vertical lines of the cube
+								if ( bits & 512 ) {
+									mu = ( iso - value1 ) / ( value5 - value1 );
+									vlist[9].copy(points[px]).lerp( points[pxz], mu );
+								}
+								if ( bits & 1024 ) {
+									mu = ( iso - value3 ) / ( value7 - value3 );
+									vlist[10].copy(points[pxy]).lerp( points[pxyz], mu );
+								}
 							} else {
 								if ( bits & 1 )	{
 									vlist[0].copy(points[p]).lerp( points[px], mu );
 								}
-					  		// bottom of the cube (z up)
-					  		if ( bits & 2 )	{
-					  			vlist[1].copy(points[px]).lerp( points[pxy], mu ); // p py
-					  		}
-					  		if ( bits & 4 )	{
-					  			vlist[2].copy(points[py]).lerp( points[pxy], mu );
-					  		}
-					  		// top of the cube (z up)
-					  		if ( bits & 16 ) {
-					  			vlist[4].copy(points[pz]).lerp( points[pxz], mu );
-					  		}
-					  		if ( bits & 32 ) {
-					  			vlist[5].copy(points[pxz]).lerp( points[pxyz], mu );
-					  		}
-					  		if ( bits & 64 ) {
-					  			vlist[6].copy(points[pyz]).lerp( points[pxyz], mu );
-					  		}
-					  		// vertical lines of the cube
-					  		if ( bits & 512 ) {
-					  			vlist[9].copy(points[px]).lerp( points[pxz], mu );
-					  		}
-					  		if ( bits & 1024 ) {
-					  			vlist[10].copy(points[pxy]).lerp( points[pxyz], mu );
-					  		}
+								// bottom of the cube (z up)
+								if ( bits & 2 )	{
+									vlist[1].copy(points[px]).lerp( points[pxy], mu ); // p py
+								}
+								if ( bits & 4 )	{
+									vlist[2].copy(points[py]).lerp( points[pxy], mu );
+								}
+								// top of the cube (z up)
+								if ( bits & 16 ) {
+									vlist[4].copy(points[pz]).lerp( points[pxz], mu );
+								}
+								if ( bits & 32 ) {
+									vlist[5].copy(points[pxz]).lerp( points[pxyz], mu );
+								}
+								if ( bits & 64 ) {
+									vlist[6].copy(points[pyz]).lerp( points[pxyz], mu );
+								}
+								// vertical lines of the cube
+								if ( bits & 512 ) {
+									vlist[9].copy(points[px]).lerp( points[pxz], mu );
+								}
+								if ( bits & 1024 ) {
+									vlist[10].copy(points[pxy]).lerp( points[pxyz], mu );
+								}
 							}
 
 							count += THREE.faceCount[cubeIndex];
-				  		// construct triangles -- get correct vertices from triTable.
-				  		cubeIndex <<= 4;  // multiply by 16...
-				  		while ( THREE.triTable[ cubeIndex ] != -1 ) {
-				  			geometry.vertices.push( vlist[THREE.triTable[cubeIndex    ]].clone() );
-				  			geometry.vertices.push( vlist[THREE.triTable[cubeIndex + 1]].clone() );
-				  			geometry.vertices.push( vlist[THREE.triTable[cubeIndex + 2]].clone() );
-				  			var face = new THREE.Face3(vertexIndex, vertexIndex+1, vertexIndex+2);
-				  			geometry.faces.push( face );
+							// construct triangles -- get correct vertices from triTable.
+							cubeIndex <<= 4;  // multiply by 16...
+							while ( THREE.triTable[ cubeIndex ] != -1 ) {
+								geometry.vertices.push( vlist[THREE.triTable[cubeIndex    ]].clone() );
+								geometry.vertices.push( vlist[THREE.triTable[cubeIndex + 1]].clone() );
+								geometry.vertices.push( vlist[THREE.triTable[cubeIndex + 2]].clone() );
+								var face = new THREE.Face3(vertexIndex, vertexIndex+1, vertexIndex+2);
+								geometry.faces.push( face );
 
-				  			vertexIndex += 3;
-				  			cubeIndex += 3;
-				  		}
-				  	}
+								vertexIndex += 3;
+								cubeIndex += 3;
+							}
+						}
 					}
 				}
 				console.log(count);
-		  	//geometry.mergeVertices(); // Don't want to do this unless you have to - expensive! What is it good for, though?
 				if (calcNormals) {
 					geometry.computeFaceNormals();
-			  	geometry.computeVertexNormals();
+					geometry.computeVertexNormals();
 				}
-		  	return (new THREE.BufferGeometry).fromGeometry( geometry );
-		  }
-
-
-
-
+				return (new THREE.BufferGeometry).fromGeometry( geometry );
+			}
 
 			/////////////////////////////////////
 		  // Marching cubes lookup tables
@@ -1374,7 +1367,7 @@
 		  // These tables are straight from Paul Bourke's page:
 		  // http://local.wasp.uwa.edu.au/~pbourke/geometry/polygonise/
 		  // who in turn got them from Cory Gene Bloyd.
-
+		{
 		  THREE.edgeTable = new Int32Array([
 		  0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
 		  0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
@@ -1667,7 +1660,8 @@
 		  0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 		  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]);
 
-			THREE.faceCount = new Int32Array([0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,2,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,2,3,3,2,3,4,4,3,3,4,4,3,4,5,5,2,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,4,2,3,3,4,3,4,2,3,3,4,4,5,4,5,3,2,3,4,4,3,4,5,3,2,4,5,5,4,5,2,4,1,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,2,3,3,4,3,4,4,5,3,2,4,3,4,3,5,2,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,4,3,4,4,3,4,5,5,4,4,3,5,2,5,4,2,1,2,3,3,4,3,4,4,5,3,4,4,5,2,3,3,2,3,4,4,5,4,5,5,2,4,3,5,4,3,2,4,1,3,4,4,5,4,5,3,4,4,5,5,2,3,4,2,1,2,3,3,2,3,4,2,1,3,2,4,1,2,1,1,0]);
+			THREE.faceCount = [0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,2,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,2,3,3,2,3,4,4,3,3,4,4,3,4,5,5,2,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,4,2,3,3,4,3,4,2,3,3,4,4,5,4,5,3,2,3,4,4,3,4,5,3,2,4,5,5,4,5,2,4,1,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,2,3,3,4,3,4,4,5,3,2,4,3,4,3,5,2,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,4,3,4,4,3,4,5,5,4,4,3,5,2,5,4,2,1,2,3,3,4,3,4,4,5,3,4,4,5,2,3,3,2,3,4,4,5,4,5,5,2,4,3,5,4,3,2,4,1,3,4,4,5,4,5,3,4,4,5,5,2,3,4,2,1,2,3,3,2,3,4,2,1,3,2,4,1,2,1,1,0];
+		}
 		</script>
 
 
