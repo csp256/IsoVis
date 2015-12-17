@@ -1,8 +1,10 @@
 # IsoVis
-Visualize higher dimensional functions.
+Create higher dimensional shapes in a web browser.
 
 Download, unzip, and open IsoVis.html in Google Chrome. (ctrl + o)
 
-You can edit the resolution, parameters, and function in real time. You can scale, rotate, & translate the space. Runs on up to 8 cores; at maximum resolution memory usage is ~1.2 GB. Click 'Abort!' to reclaim memory.
+You can edit every parameter defining the shape in real time. Write your own JavaScript function & adjust "iso" to see different parts of the function. Scale, rotate, & translate through any dimension.
+
+Runs on up to 9 cores. At maximum resolution (65) memory usage is ~1.2 GB. Press 'Abort!' to reclaim.
 
 Please report any bugs, and feel free to make feature requests.
