@@ -222,7 +222,10 @@
 	    		case 'scalarField':
 	    			rebuildScalarField(e.data.params.coeff, e.data.num);
 	    		case 'geometry':
-						marchingCubes( points, values, e.data.params.iso, e.data.params.interpolate, e.data.calcNormals, e.data.num );
+						this.vertexBuffer = e.data.vertexBuffer;
+						this.faceBuffer = e.data.faceBuffer;
+						this.normalBuffer = e.data.normalBuffer;
+						marchingCubes( points, values, e.data.params.iso, e.data.params.interpolate, e.data.calcNormals, e.data.num, e.data.params.memoryOveruse );
 	    			reply(e.data.num);
 	    		break;
 	    		default:
@@ -263,7 +266,7 @@
 			  return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 			}
 
-		  function marchingCubes( points, values, iso, interpolate, calcNormals, num) {
+		  function marchingCubes( points, values, iso, interpolate, calcNormals, num, memoryOveruse) {
 				// First pass calculates the necessary sizes of the buffers
 				// and caches the "bits" variable.
 				var totalVertexCount = 0;
@@ -335,13 +338,28 @@
 					}
 				}
 //				if (num==0) console.log(coords);
-				this.vertexBuffer = new ArrayBuffer(totalVertexCount * 3 * 4);
+				memoryOveruse += 1;
+				if (vertexBuffer.byteLength < totalVertexCount * 3 * 4) {
+					this.vertexBuffer = new ArrayBuffer(4 * Math.floor(totalVertexCount * 3 * memoryOveruse));
+				}
 				var vertexArray = new Float32Array(vertexBuffer);
-				this.normalBuffer = new ArrayBuffer(totalVertexCount * 3 * 4);
+
+				if (faceBuffer.byteLength < totalFaceCount * 3 * 4) {
+					this.faceBuffer = new ArrayBuffer(4 * Math.floor(totalFaceCount * 3 * memoryOveruse));
+					var faceArray = new Float32Array(faceBuffer);
+				} else {
+					faceArray = new Float32Array(faceBuffer);
+					for (var i=totalFaceCount; i<faceArray.length; i++) {
+						faceArray[i] = 0;
+					}
+				}
+
+				if (normalBuffer.byteLength < totalVertexCount * 3 * 4) {
+					this.normalBuffer = new ArrayBuffer(4 * Math.floor(totalVertexCount * 3 * memoryOveruse));
+				}
 				var normalArray = new Float32Array(normalBuffer);
+
 				// var colorBuffer = new Float32Array(totalVertexCount * 3);
-				this.faceBuffer = new ArrayBuffer(totalFaceCount * 3 * 4);
-				var faceArray = new Float32Array(faceBuffer);
 
 ' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ';
 ' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ';

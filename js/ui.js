@@ -126,14 +126,14 @@ function buildRightGUI() {
 			case "0": // EULER ROTATION
 				var folder = rightgui.addFolder((i+1)+' Euler Rotation');
 				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( updateTransformType );
-				folder.add(transforms[i], 'axis1').min(1).max(n).step(1).onChange( setCoordsDirty );
-				folder.add(transforms[i], 'axis2').min(1).max(n).step(1).onChange( setCoordsDirty );
+				folder.add(transforms[i], 'axis1').min(0).max(n-1).step(1).onChange( setCoordsDirty );
+				folder.add(transforms[i], 'axis2').min(0).max(n-1).step(1).onChange( setCoordsDirty );
 				folder.add(transforms[i], 'degrees').min(-180).max(180).onChange( setCoordsDirty );
 			break;
 			case "1": // SCALE
 				var folder = rightgui.addFolder((i+1)+' Scale');
 				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( updateTransformType );
-        for (var k=0; k<n; k++) folder.add(transforms[i].s, k, transforms[i].s[k]).min(0.0001).onChange(setCoordsDirty);
+        for (var k=0; k<n; k++) folder.add(transforms[i].s, k, transforms[i].s[k]).min(-Infinity).onChange(setCoordsDirty);
 			break;
 			case "2": // TRANSLATE
 				var folder = rightgui.addFolder((i+1)+' Translation');
@@ -143,8 +143,8 @@ function buildRightGUI() {
 			case "3": // SHEAR
 				var folder = rightgui.addFolder((i+1)+' Shear');
 				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( updateTransformType );
-				folder.add(transforms[i], 'row').min(1).max(n).step(1).onChange( setCoordsDirty );
-				folder.add(transforms[i], 'col').min(1).max(n).step(1).onChange( setCoordsDirty );
+				folder.add(transforms[i], 'row').min(0).max(n-1).step(1).onChange( setCoordsDirty );
+				folder.add(transforms[i], 'col').min(0).max(n-1).step(1).onChange( setCoordsDirty );
 				folder.add(transforms[i], 'shear').onChange( setCoordsDirty );
 			break;
 			default: // error!

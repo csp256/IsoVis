@@ -1,13 +1,11 @@
 function initParams() {
-  this.n = 6;
-
   this.shapeParams = {
     editCode: false,
     editorWidth: (window.innerWidth*0.25),
 		resolution: 30,
     reset: false,
     dimensions: 6,
-    memoryOveruse: 0.2,
+    memoryOveruse: 0.5,
 		iso: 5,
 		parameters: [],
     interpolate: true,
@@ -15,6 +13,7 @@ function initParams() {
     coeffCount: 6,
     coeff: [3.5, 3, 1.5, 3, 1, 2],
 	};
+  this.n = shapeParams.dimensions; // n was used in an earlier version, as a constant; consider it a relic that is not worth cleaning up.
   this.cachedCoeff = new Array(shapeParams.maxCoeffCount);
   for (var i=0; i<shapeParams.maxCoeffCount; i++) {
     cachedCoeff[i] = 0;

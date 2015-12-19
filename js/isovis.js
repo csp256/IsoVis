@@ -3,11 +3,30 @@ function init() {
 //	workerSourceString = workerSourceString + gatherWorkerResource('three');
 	workerSourceString = workerSourceString + gatherWorkerResource('marchingCubes');
 
+	this.vertexBuffer = new Array(8);
+	this.faceBuffer = new Array(8);
+	this.normalBuffer = new Array(8);
+	for (var i=0;i<8;i++) {
+		vertexBuffer[i] = new ArrayBuffer(4);
+		faceBuffer[i] = new ArrayBuffer(4);
+		normalBuffer[i] = new ArrayBuffer(4);
+	}
+	this.theBoundingSphere = new THREE.Sphere(); // Only used to suppress irrelevant error messages in handleWorkerMessage().
+	this.meshes = new Array(8);
+	for (var i=0;i<8;i++) {
+		var g = new THREE.BufferGeometry()
+		g.addAttribute( 'position', new THREE.BufferAttribute( new Float32Array(0,0,0), 3 ) );
+		g.setIndex(  new THREE.BufferAttribute( new Float32Array(0,0,0),3));
+		g.addAttribute( 'normal', new THREE.BufferAttribute( new Float32Array(0,0,0), 3 ) );
+		meshes[i] = new THREE.Mesh(g);
+	}
+	updateMaterial();
+
 	initEditor();
 	initWorkers();
 
 	if ( Detector.webgl )
-		renderer = new THREE.WebGLRenderer( {antialias:true} );
+		renderer = new THREE.WebGLRenderer( {antialias:true, preserveDrawingBuffer: true} );
 	else
 		renderer = new THREE.CanvasRenderer();
 	renderer.autoClear = false;
@@ -56,12 +75,6 @@ function init() {
 
 	scene = new THREE.Scene();
 	scene.add( new THREE.AxisHelper(axisMax) );
-
-	this.meshes = [];
-	for (var i=0;i<8;i++) {
-		meshes.push(new THREE.Mesh(new THREE.Geometry()));
-	}
-	updateMaterial();
 
 	this.transforms = [];
 	transforms.push( plainTransform() );

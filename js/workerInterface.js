@@ -3,7 +3,6 @@ function talkToWorker(msg) {
 		document.title = titleBusy;
 		console.time("All Workers");
 		var R = computeFullTransform();
-		console.log(R);
     var outgoing = {num: 0, messageType:msg, R: R, n: n, params: shapeParams, calcNormals: materialParams.calcNormals};
     if (msg == 'code') {
 			// All but the last line... yes the indexing is weird but correct.
@@ -13,7 +12,10 @@ function talkToWorker(msg) {
 			waitingForWebWorker[i] = true;
 			console.time("Worker " + i + " Total");
       outgoing.num = i;
-			workers[i].postMessage( outgoing );
+			outgoing.vertexBuffer = vertexBuffer[i];
+			outgoing.faceBuffer = faceBuffer[i];
+			outgoing.normalBuffer = normalBuffer[i];
+			workers[i].postMessage( outgoing, [vertexBuffer[i], faceBuffer[i], normalBuffer[i]] );
 		}
 	}
 }
@@ -29,10 +31,19 @@ function waitingForAnyWebWorker() {
 
 function handleWorkerMessage(e) {
 	var octant = e.data.num;
+	vertexBuffer[octant] = meshes[octant].geometry.attributes.position.array.buffer;
+	faceBuffer[octant] = meshes[octant].geometry.index.array.buffer;
+	normalBuffer[octant] = meshes[octant].geometry.attributes.normal.array.buffer;
+
+	// meshes[octant].geometry.addAttribute( 'position', new THREE.BufferAttribute( new Float32Array(e.data.buffers[0]), 3 ) );
+	// meshes[octant].geometry.setIndex(  new THREE.BufferAttribute( new Float32Array(e.data.buffers[1]),3));
+	// meshes[octant].geometry.addAttribute( 'normal', new THREE.BufferAttribute( new Float32Array(e.data.buffers[2]), 3 ) );
+
 	var buffGeom = new THREE.BufferGeometry();
 	buffGeom.addAttribute( 'position', new THREE.BufferAttribute( new Float32Array(e.data.buffers[0]), 3 ) );
 	buffGeom.setIndex(  new THREE.BufferAttribute( new Float32Array(e.data.buffers[1]),3));
 	buffGeom.addAttribute( 'normal', new THREE.BufferAttribute( new Float32Array(e.data.buffers[2]), 3 ) );
+	buffGeom.boundingSphere = theBoundingSphere; // This is just to suppress error messages; has no other purpose.
 	var m = new THREE.Mesh( buffGeom, myMaterial );
 	meshes[octant] = m;
 	waitingForWebWorker[octant] = false;
