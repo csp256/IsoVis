@@ -37,26 +37,22 @@ function plainTransform() {
   var out = {
 		type: "0", // 0 rotation, 1 scale, 2 translation, 3 shear
 
-		axis1: 	0,
-		axis2: 	0,
-		degrees: 0,
+		axis1: 	1,
+		axis2: 	1,
+		degrees: 0.0,
 
-		sx: 1,
-		sy: 1,
-		sz: 1,
-		sa: 1,
-		sb: 1,
+		s: new Array(n),
 
-		dx: 0,
-		dy: 0,
-		dz: 0,
-		da: 0,
-		db: 0,
+		d: new Array(n), // d for delta translation. t might be used for time in a later version.
 
-		row: 0,
-		col: 1,
-		shear: 0,
-		};
+		row: 1,
+		col: 2,
+		shear: 0.0,
+	};
+	for (var i=0; i<n; i++) {
+		out.s[i] = 1.0;
+		out.d[i] = 0.0;
+	}
 	return out;
 }
 
@@ -70,28 +66,20 @@ function computeTransform() {
 					var theta = transforms[i].degrees * Math.PI / 180;
 					var c = Math.cos(theta);
 					var s = Math.sin(theta);
-					P[transforms[i].axis1][transforms[i].axis1] = c;
-					P[transforms[i].axis2][transforms[i].axis2] = c;
-					P[transforms[i].axis1][transforms[i].axis2] = s;
-					P[transforms[i].axis2][transforms[i].axis1] = -s;
+					P[transforms[i].axis1-1][transforms[i].axis1-1] = c;
+					P[transforms[i].axis2-1][transforms[i].axis2-1] = c;
+					P[transforms[i].axis1-1][transforms[i].axis2-1] = s;
+					P[transforms[i].axis2-1][transforms[i].axis1-1] = -s;
 				}
 			break;
 			case "1":
-				P[0][0] = 1/transforms[i].sx;
-				P[1][1] = 1/transforms[i].sy;
-				P[2][2] = 1/transforms[i].sz;
-				P[3][3] = 1/transforms[i].sa;
-				P[4][4] = 1/transforms[i].sb;
+				for (var k=0; k<n; k++) P[k][k] = 1/transforms[i].s[k];
 			break;
 			case "2":
-				P[0][5] = -transforms[i].dx;
-				P[1][5] = -transforms[i].dy;
-				P[2][5] = -transforms[i].dz;
-				P[3][5] = -transforms[i].da;
-				P[4][5] = -transforms[i].db;
+				for (var k=0; k<n; k++) P[k][n] = -transforms[i].d[k];
 			break;
 			case "3":
-				P[transforms[i].row][transforms[i].col] = transforms[i].shear;
+				P[transforms[i].row-1][transforms[i].col-1] = transforms[i].shear;
 			break;
 			default:
 		}

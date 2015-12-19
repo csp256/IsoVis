@@ -28,7 +28,7 @@ function initEditor() {
 		viewportMargin: Infinity,
 	});
 	myCodeMirror.on("beforeChange", beforeChangeCallback );
-	myCodeMirror.on("blur", function(){console.log('ok');});
+	myCodeMirror.on("blur", function(){ ; ; ; }); // For future use..?
 	myCodeMirror.setOption("theme", 'pastel-on-dark');
 
 	this.toolbar = document.getElementById( 'toolbar' );

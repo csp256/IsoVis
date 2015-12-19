@@ -43,7 +43,8 @@
 
 		<script type='text/worker' id='worker'>
 		  var setup = function(dim, s, octant) {
-		  	this.n = 5;
+		  	this.n = dim;
+
 		  	var axisMin = -10;
 		  	var axisMax =  10;
 		  	var axisRange = axisMax - axisMin;
@@ -56,7 +57,7 @@
 		  		this.points = new Float32Array(3*size3);
 				}
 				if (points.length < 3*size3) {
-						this.points = new Float32Array(3*size3);
+					this.points = new Float32Array(3*size3);
 				}
 
 				if (typeof this.values == 'undefined') {
@@ -85,18 +86,15 @@
 		  	var zOffset = ((octant & 4) > 0) ? axisMin : 0;
 
 		  	var index = 0;
-				var index2 = 0;
 		  	var spacing = 0.5 * axisRange / (size - 1);
 		  	for (var k = 0; k < size; k++) {
 		  		var z = zOffset + spacing * k;
 		  		for (var j = 0; j < size; j++) {
 		  			var y = yOffset + spacing * j;
-		  			for (var i = 0; i < size; i++, index2+=3) {
-		  				var x = xOffset + spacing * i;
-							points[index2  ] = x;
-							points[index2+1] = y;
-							points[index2+2] = z;
-							index++;
+		  			for (var i = 0; i < size; i++, index+=3) {
+							points[index  ] = xOffset + spacing * i; // Could do strength reduction on this.
+							points[index+1] = y;
+							points[index+2] = z;
 		  			}
 		  		}
 		  	}
@@ -142,7 +140,7 @@
 
 		  	a = a + 'for (var i=0; i<'+s+'; i++, cIndex+='+n+', pIndex+=3) {\n';
 		  	for (var i=0; i<n; i++) {
-//		  		a = a + 'coords[cIndex]['+i+'] = c1['+i+']*points[pIndex  ] + YZT['+i+'];\n'
+		  		// a = a + 'coords[cIndex]['+i+'] = c1['+i+']*points[pIndex  ] + YZT['+i+'];\n'
 					a = a + 'coords[cIndex+'+i+'] = c1['+i+']*points[pIndex  ] + YZT['+i+'];\n'
 		  	}
 
@@ -215,7 +213,7 @@
 	    			self.postMessage( e.data.num );
 	    		break;
 	    		case  'init':
-	    			setup(e.data.n, e.data.params.resolution, e.data.num);
+	    			setup(e.data.params.dimensions, e.data.params.resolution, e.data.num);
 	    			this.rebuildCoords = new Function('R', updateCoordsFunction(e.data.n, e.data.params.resolution));
 	    		case 'coords':
 	    			rebuildCoordsIndirectly(e.data.R); // rebuildCoords() is an anonymous function and makes profiling weird.
@@ -236,6 +234,7 @@
 
 		  function reply(num) {
 				var b = [vertexBuffer, faceBuffer, normalBuffer];
+//				if (num==0) console.log(vertexBuffer.byteLength);
 		  	self.postMessage( {num: num, buffers: b},  b);
 //console.log(typeof buffers[0]);
 //self.postMessage( buffers, buffers );
@@ -258,38 +257,11 @@
 		  		Some modifications have been made.
 		   */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 			function HammingWeight(i) {
 			  i = i - ((i >> 1) & 0x55555555);
 			  i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
 			  return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 			}
-
-
 
 		  function marchingCubes( points, values, iso, interpolate, calcNormals, num) {
 				// First pass calculates the necessary sizes of the buffers
@@ -362,6 +334,7 @@
 						}
 					}
 				}
+//				if (num==0) console.log(coords);
 				this.vertexBuffer = new ArrayBuffer(totalVertexCount * 3 * 4);
 				var vertexArray = new Float32Array(vertexBuffer);
 				this.normalBuffer = new ArrayBuffer(totalVertexCount * 3 * 4);

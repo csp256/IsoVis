@@ -3,6 +3,7 @@ function talkToWorker(msg) {
 		document.title = titleBusy;
 		console.time("All Workers");
 		var R = computeFullTransform();
+		console.log(R);
     var outgoing = {num: 0, messageType:msg, R: R, n: n, params: shapeParams, calcNormals: materialParams.calcNormals};
     if (msg == 'code') {
 			// All but the last line... yes the indexing is weird but correct.

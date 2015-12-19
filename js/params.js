@@ -1,11 +1,13 @@
 function initParams() {
-  this.n = 5;
+  this.n = 6;
 
   this.shapeParams = {
     editCode: false,
     editorWidth: (window.innerWidth*0.25),
 		resolution: 30,
     reset: false,
+    dimensions: 6,
+    memoryOveruse: 0.2,
 		iso: 5,
 		parameters: [],
     interpolate: true,

@@ -284,11 +284,11 @@ function makeLUT() {
     vertexCount.push(c);
   }
 
-  var a = [];
+/*  var a = [];
   for (var i=90*16; i<91*16; i++) {
     a.push(inp[i]);
   }
-  console.log(a);
+  console.log(a);*/
 
   Array.prototype.max = function() { // God this is sexy.
     return Math.max.apply(null, this);
