@@ -10,8 +10,8 @@ function initParams() {
 		parameters: [],
     interpolate: true,
     maxCoeffCount: 32,
-    coeffCount: 5,
-    coeff: [3.5, 3, 1.5, 3, 0],
+    coeffCount: 6,
+    coeff: [3.5, 3, 1.5, 3, 1, 2],
 	};
   this.cachedCoeff = new Array(shapeParams.maxCoeffCount);
   for (var i=0; i<shapeParams.maxCoeffCount; i++) {

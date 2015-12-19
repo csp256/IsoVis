@@ -50,7 +50,7 @@ function shapeFolder(g) {
   var folder = g.addFolder('Shape');
   folder.add(shapeParams, 'editorWidth').min(0).max(window.innerWidth*0.5 /* - Math.min(245, 2*parseInt(leftgui.domElement.style.width)) */).step(1).onFinishChange( updateEditor );
   folder.add(shapeParams, 'resolution').min(0).max(65).step(1).onFinishChange( setSizeDirty );
-  folder.add(shapeParams, 'reset').name('Abort!').onChange( resetWorker10 );
+  folder.add(shapeParams, 'reset').name('Abort').onChange( resetWorker10 );
   folder.add(shapeParams, 'interpolate').onChange( setMeshDirty );
   folder.add(shapeParams, 'iso').onChange( setMeshDirty );
   folder.add(shapeParams, 'coeffCount').min(1).max(shapeParams.maxCoeffCount).step(1).onChange( updateCoeff );

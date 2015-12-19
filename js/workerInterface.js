@@ -28,12 +28,11 @@ function waitingForAnyWebWorker() {
 
 function handleWorkerMessage(e) {
 	var octant = e.data.num;
-	console.timeEnd("Worker " + octant + " Total");
-	var msgGeom = e.data.geom;
-	var myGeom = new THREE.Geometry();
-	myGeom.fromBufferGeometry(msgGeom);
-
-	var m = new THREE.Mesh( myGeom, myMaterial );
+	var buffGeom = new THREE.BufferGeometry();
+	buffGeom.addAttribute( 'position', new THREE.BufferAttribute( new Float32Array(e.data.buffers[0]), 3 ) );
+	buffGeom.setIndex(  new THREE.BufferAttribute( new Float32Array(e.data.buffers[1]),3));
+	buffGeom.addAttribute( 'normal', new THREE.BufferAttribute( new Float32Array(e.data.buffers[2]), 3 ) );
+	var m = new THREE.Mesh( buffGeom, myMaterial );
 	meshes[octant] = m;
 	waitingForWebWorker[octant] = false;
 	if (!waitingForAnyWebWorker()) {

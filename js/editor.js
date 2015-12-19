@@ -1,8 +1,10 @@
 function defaultText() {
-	return "function field(x, c) {\n\
-	var t = Math.sqrt(Math.abs(x[0]*x[0] + x[1]*x[1] - c[0])) - c[1];\n\
-	var u = Math.sqrt(Math.abs(x[2]*x[2] + x[3]*x[3] - c[2])) - c[3];\n\
-	return t*t + u*u - c[4];\n\
+	return "function field(x, c, size3, n) {\n\
+	for (var i=0,j=0; i<size3; i++,j+=n) {\n\
+		var t = Math.sqrt(Math.abs(x[j+0]*x[j+0] + x[j+1]*x[j+1] - c[0])) - c[1];\n\
+		var u = Math.sqrt(Math.abs(x[j+2]*x[j+2] + x[j+3]*x[j+3] - c[2])) - c[3];\n\
+		values[i] = t*t + u*u - c[4]*Math.sin(c[5]*x[j+4]);\n\
+	}\n\
 }";
 }
 
@@ -97,4 +99,10 @@ function updateEditor() {
 	myCodeMirror.refresh();
 
 	adjustRightGUI();
+
+	// I have this same code in like three places... I should clean it up.
+	renderer.setSize( window.innerWidth - shapeParams.editorWidth, window.innerHeight );
+	camera.aspect	= (window.innerWidth - shapeParams.editorWidth) / (window.innerHeight );
+	camera.updateProjectionMatrix();
+	container.style.left = shapeParams.editorWidth.toString() + 'px';
 }
