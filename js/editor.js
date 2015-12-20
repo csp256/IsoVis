@@ -82,7 +82,18 @@ function initEditor() {
 	button.addEventListener( 'click', importFromJSON, false );
 	toolbar.appendChild( button );
 
+	var div = document.createElement('div');
+	div.className = 'divider';
+	toolbar.appendChild( div );
+
+	var button = document.createElement('button');
+	button.className = 'button';
+	button.textContent = 'Screenshot';
+	button.addEventListener("click", takeScreenshot, false);
+	toolbar.appendChild( button );
 }
+
+
 
 function updateEditor() {
 	var widthString = shapeParams.editorWidth.toString() + 'px';
