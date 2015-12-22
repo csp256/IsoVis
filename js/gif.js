@@ -1,49 +1,5 @@
-function exportToJSON() {
-  var foo = [];
-  foo.push({name: 'shapeParams', data: shapeParams});
-  foo.push({name: 'cameraParams', data: cameraParams});
-  foo.push({name: 'materialParams', data: materialParams});
-  foo.push({name: 'transformParams', data: transformParams});
-  foo.push({name: 'transforms', data: transforms});
-  window.prompt("Copy to clipboard: Ctrl+C, Enter.", JSON.stringify(foo));
-}
-
-var foo;
-
-function merge(a, b) {
-  for (var i in b) {
-    a[i] = b[i];
-  }
-}
-
-function importFromJSON() {
-  var inString = window.prompt("Paste JSON, Enter.", '');
-  foo = JSON.parse(inString);
-  
-  for (var i in foo) {
-    var group = foo[i];
-    switch (group.name) {
-      case 'shapeParams':
-        merge(shapeParams, group.data);
-      break;
-      case 'cameraParams':
-        merge(cameraParams, group.data);
-      break;
-      case 'materialParams':
-        merge(materialParams, group.data);
-      break;
-      case 'transformParams':
-        merge(transformParams, group.data);
-      break;
-      case 'transforms':
-        transforms = group.data.slice();
-      break;
-    }
-  }
-  resetWorker(shapeParams.resolution);
-  updateMaterial();
-  updateBackground();
-}
+// None of this works quite right yet.
+// Didn't help that I didn't know enough about JS to set things up right.
 
 function dataURLToBlob(dataURL) {
 	var BASE64_MARKER = ';base64,';
@@ -122,30 +78,49 @@ function makeGIF() {
 }
 
 function doNextFrame() {
-  frame(frameNumber);
+  frame(f);
+  //fancyLerp(currentFrame/maxFrame, 1-currentFrame/maxFrame);
+  updateMaterial();
+  updateBackground();
   talkToWorker('coords');
   waitingForNextFrame = false;
 }
 
 function frame(f) {
-  if (f<=90) {
-    var t = f - 0;
-    transforms[0].degrees = t;
-  } else if (t<=180) {
-    var t = f - 90;
-    transforms[1].degrees = 0.5 * t;
-  } else if (t<=270) {
-    var t = f - 180;
-    transforms[0].degrees = 90 - t;
-  } else if (t<=360) {
-    var t = f - 270;
-    transforms[1].degrees = 0.5 * t;
-  } else {
-    this.doneWithGIF = true;
+  transforms[0]
+}
+
+function fancyLerp(alpha, oneMinusAlpha) {
+  for (var i in foo) {
+    var group = foo[i];
+    switch (group.name) {
+      case 'shapeParams':
+        objectLerp(shapeParams, group.data);
+      break;
+      case 'cameraParams':
+        objectLerp(cameraParams, group.data);
+      break;
+      case 'materialParams':
+        objectLerp(materialParams, group.data);
+      break;
+      case 'transformParams':
+        objectLerp(transformParams, group.data);
+      break;
+      case 'transforms':
+        transforms = group.data.slice();
+      break;
+    }
   }
 }
 
 function startGIF() {
+  // var help = 'Usage information available at github.com/csp256/IsoVis\n\n';
+  // this.startFrameParams = JSON.parse(window.prompt(help + "Paste JSON of starting position.", ''));
+  // this.finalFrameParams = JSON.parse(window.prompt(help + "Paste JSON of ending configuration.", ''));
+  // this.maxFrame = parseInt(window.prompt(help + "Number of frames:", ''));
+  // this.currentFrame = parseInt(window.prompt(help + "Resume at frame:", '0'));
+  // this.gifName = window.prompt('File name:', 'IsoVis_');
+
   camera.position.x = 13.801932541815242;
   camera.position.y = 8.67053362580356;
   camera.position.z = 12.602896281212557;

@@ -1,17 +1,19 @@
 function initParams() {
+  //this.maxFrameNumber = 180;
+
   this.shapeParams = {
     editCode: false,
-    editorWidth: (window.innerWidth*0.25),
+    editorWidth: 340, //(window.innerWidth*0.25),
 		resolution: 30,
     reset: false,
-    dimensions: 6,
+    dimensions: 5,
     memoryOveruse: 0.5,
 		iso: 5,
 		parameters: [],
     interpolate: true,
     maxCoeffCount: 32,
     coeffCount: 6,
-    coeff: [3.5, 3, 1.5, 3, 1, 2],
+    coeff: [3.5, 3, 1.5, 3, -1, 2],
 	};
   this.n = shapeParams.dimensions; // n was used in an earlier version, as a constant; consider it a relic that is not worth cleaning up.
   this.cachedCoeff = new Array(shapeParams.maxCoeffCount);
@@ -21,7 +23,7 @@ function initParams() {
 
   this.cameraParams = {
     perspective: true,
-    fov: 45,
+    fov: 50,
     scale: 1,
     wobble: true,
     radius: 1,
@@ -47,7 +49,7 @@ function initParams() {
   }
 
   this.transformParams = {
-    zoom: 1.5,
+    zoom: 1.4,
     invertOrder: false,
     pushTransform: false,
     popTransform: false,

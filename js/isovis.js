@@ -33,6 +33,10 @@ function init() {
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	this.container = document.getElementById( 'ThreeJS' );
 	container.appendChild( renderer.domElement );
+	this.waitingForNextFrame = false;
+	this.makingGIF = false;
+	this.doneWithGIF = true; // Reference makingGIF instead; this is just for an edge case
+	this.startFrame = 0;
 
 	if (!Array.prototype.last) { // Adds the .last() function to arrays!
 		Array.prototype.last = function(){
@@ -151,6 +155,9 @@ function updateMaterial() {
 function animate() {
 	cameraWobble();
 	render();
+	if (makingGIF && !waitingForAnyWebWorker() && !waitingForNextFrame) {
+		setTimeout(makeGIF(), 2000); // this call will need to save a PNG out, apply an xform, then talk to WW's.
+	}
 	cameraUnwobble();
 	update();
 	requestAnimationFrame( animate );
@@ -159,21 +166,23 @@ function animate() {
 function update() {
 	controls.update();
 	stats.update();
-	if (sizeDirty) {
-		sizeDirty = false;
-		talkToWorker('init');
-	}
-	if (coordsDirty) {
-		coordsDirty = false;
-		talkToWorker('coords');
-	}
-	if (scalarFieldDirty) {
-		scalarFieldDirty = false;
-		talkToWorker('scalarField');
-	}
-	if (meshDirty) {
-		meshDirty = false;
-		talkToWorker('geometry');
+	if (!makingGIF) {
+		if (sizeDirty) {
+			sizeDirty = false;
+			talkToWorker('init');
+		}
+		if (coordsDirty) {
+			coordsDirty = false;
+			talkToWorker('coords');
+		}
+		if (scalarFieldDirty) {
+			scalarFieldDirty = false;
+			talkToWorker('scalarField');
+		}
+		if (meshDirty) {
+			meshDirty = false;
+			talkToWorker('geometry');
+		}
 	}
 }
 
