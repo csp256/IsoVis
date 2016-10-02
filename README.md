@@ -35,7 +35,7 @@ The transformation stack is manipulated with the GUI windows on the upper right 
 * _Reset Orientation_ - Removes the effect from "Apply Transform"
 * _Pop All Transforms_ - Empties the stack. 
 
-There are many types of primitive linear transformations. Because Javascript is 0 indexed, the first 3 dimensions are numbered 0, 1, and 2. Note that for technical reasons above the INVERSE of each linear transformation is what is actually applied.
+There are many types of primitive linear transformations. Because Javascript is 0 indexed, the first 3 dimensions are numbered 0, 1, and 2. Note that for technical reasons above the INVERSE of each linear transformation is what is actually applied. (read: contravariance and covariance)
 
 * _Euler Rotation_ - Rotation on a plane defined by two basis axes. (Note, rotations happen on a plane, NOT around a direction; it only seems that way in 3 dimensions.) Because you can combine multiple rotations, you can generate any rotation by first projecting the desired rotation plane to be coplanar with two basis axes. 
 
@@ -51,11 +51,60 @@ There are many types of primitive linear transformations. Because Javascript is 
 
 * _Shear_ - Applies the Identity transformation, but with a single user-specified off diagonal element non-zero. Note zero indexing and inversion of the shear amount.
 
+In contrast, the "zoom" field in the upper right applies a scaling that is defined to occur after all other transformations. It is provided solely for convenience.
+
 ### The Function Editor
 
-The pane on the left allows you to write code to define the scalar field you want to visualize. Change the width in the "Shape" GUI window using "editorWidth". 
+The pane on the left allows you to write code to define the scalar field you want to visualize. Change the width in the "Shape" GUI window using "editorWidth". Set the number of dimensions you will be working in the same window with "dimensions". The "isolevel" field changes what value you are looking at. 
 
-**Update** Click 
+* *Update* - Click to submit your changes to the Web Workers. *If you make an error, there will be no error message.* It will simply compile the default function instead.
+* *Reset* - Resets the text editor. 
+
+The other buttons in the same panel do not interact with your text editor (even import & export). 
+
+Writing functions in the function editor is done by Javascript. The position of each point is stored consecutively in the x[] array, with an offset of j. Thus, to access dimension number k (again, dimensions are numbered starting at 0), you must access 
+
+    function field(x, c, size3, n) { // You can not edit this line.
+      // Define any variables you might want.
+      for (var i=0,j=0; i<size3; i++,j+=n) { // Do not edit this line.
+        // Anything you want.
+        values[i] = whatever_variable_holds_your_final_result; // Write output to the format IsoVis expects.
+      } // Do not edit this line
+    } // You can not edit this line.
+    
+If you wanted to look at a cylinder, you could accomplish that by:
+
+    function field(x, c, size3, n) { 
+      for (var i=0,j=0; i<size3; i++,j+=n) { 
+        values[i] = Math.sqrt(x[j+0] * x[j+0] + x[j+1] * x[j+1]);
+      } 
+    } 
+
+Note, when using the square root function, make sure you never pass it a negative value. The result will not be what you want. There is no support for complex numbers.
+
+Maybe you wanted the cylinder to have a varying, periodic radius:
+
+    function field(x, c, size3, n) { 
+      var wiggle;
+      for (var i=0,j=0; i<size3; i++,j+=n) { 
+        wiggle = 1 + Math.sin( x[j+2] );        
+        values[i] = Math.sqrt(x[j+0] * x[j+0] + x[j+1] * x[j+1] + wiggle);
+      } 
+    } 
+
+Maybe you wanted to be able to control how the radius changed without applying transforms, so you add three constant coefficients (also 0 indexed):
+
+    function field(x, c, size3, n) { 
+      var wiggle;
+      for (var i=0,j=0; i<size3; i++,j+=n) { 
+        wiggle = 1 + c[0]*Math.sin( c[1]*x[j+2] + c[2] );        
+        values[i] = Math.sqrt(x[j+0] * x[j+0] + x[j+1] * x[j+1] + wiggle);
+      } 
+    } 
+
+These coefficients can be conveneintly edited under the "Coefficients" subwindow in the "Shape" window. You can change the number of coefficients by changing "coeffCount" right next to it. Having coeffCount set too high will not hurt things, but it might be confusing for the user. 
+
+If you wanted to use a coordinate system other than Cartiesian, such as spherical, you have to manually apply this conversion yourself. 
 
 ## FAQ (aka, WTF's)
 
@@ -70,7 +119,9 @@ This started off as a quick, one-off side project. I started off unfamiliar with
 ## Bugs and upcoming features
 
 * Gif-making does not work properly (highest priority)
-* Can not share
+* Editor is not included in import/export feature
+* No set of default functions
+* No volumetric visualization
 * Zoom sensitivity is not constant (easy fix, high priority)
 * Aspect ratio of rendering is dependent upon physical window size (?? fix, medium priority)
 * Changing the number of constants is handled in a stupid way (medium fix, low priority)
@@ -80,7 +131,7 @@ This started off as a quick, one-off side project. I started off unfamiliar with
 * Remove all global variables (time intensnive, mediums priority) 
 * Interpolation is always on (do not intend to fix)
 * Non-wireframe mode is broken (do not intend to fix)
-* Several other graphical issues (do not intend to fix)
+* Several other graphical issues; most under "Materials" (do not intend to fix)
 * Interface is bad on mobile phones (do not intend to fix)
 
 ## Pull requests, suggestions, and use-cases welcome.
