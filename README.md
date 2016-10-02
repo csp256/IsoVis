@@ -1,4 +1,4 @@
-### IsoVis
+# IsoVis
 Create higher dimensional shapes in a web browser.
 
 ![GitHub Logo](/image2.png)
@@ -13,7 +13,7 @@ Please report any bugs, and feel free to make feature requests.
 
 ## How to use IsoVis
 
-# What IsoVis does
+### What IsoVis does
 
 This section contains technical jargon. You can skip ahead to the next section if you want.
 
@@ -23,7 +23,7 @@ This is implemented by taking a regular lattice around the origin and applying t
 
 Intermediate stages of the computation are cached to speed up performance, but memory use can be significant. Doubling the resolution increases memory use by a factor of 8.
 
-# The Transformation Stack
+### The Transformation Stack
 
 The transformation stack is manipulated with the GUI windows on the upper right of the screen. Click on "Transforms" to expand it. Each transformation you apply is added one after another, from the bottom of the stack to the top. You can build any linear transform from these primitives.
 
@@ -45,17 +45,17 @@ There are many types of primitive linear transformations. Because Javascript is 
 * __Translation__ Positive move the scalar field "up" along that axis.
 * __Shear__ Applies the Identity transformation, but with a single user-specified off diagonal element non-zero. Note zero indexing and inversion of the shear amount.
 
-# Customizing Function
+### Customizing Function
 
 
 
 ## FAQ (aka, WTF's)
 
-# WTF? Why is the main HTML file so huge? 
+### WTF? Why is the main HTML file so huge? 
 
 Security policy for web browsers makes this the easiest, safest way to use "Web Workers" (parallel processes) while hosting the code on your local computer. I wish I had an easy fix, sorry!
 
-# WTF? Why are there global variables? 
+### WTF? Why are there global variables? 
 
 This started off as a quick, one-off side project. I started off unfamiliar with how Javascript's "var" worked, and ended up making large portions of the core logic use global variables. Whoops! This can be fixed (nothing is reliant upon them being global, per se), but it would be time consuming / slightly annoying so I haven't done it. 
 
