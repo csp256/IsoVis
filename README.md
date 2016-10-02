@@ -28,11 +28,17 @@ Intermediate stages of the computation are cached to speed up performance, but m
 The transformation stack is manipulated with the GUI windows on the upper right of the screen. Click on "Transforms" to expand it. Each transformation you apply is added one after another, from the bottom of the stack to the top. You can build any linear transform from these primitives.
 
 * _Invert Order_ - Linear transformations are not commutative. (yaw left 90 degrees, then pitch up 90 degrees. Compare with doing that in reverse order) Click this to invert the stack of transformations. 
+
 * _Push Transform_ - Adds a new transform to the top of the stack which you can manipulate.
+
 * _Pop Transform_ - Remove the transform at the top of the stack.
-* _Apply Transform_ - The entire combined linear transformation is computed, and your basis is changed such that this is the new Identity transform. - This effect can be applied many times. In general use, you don't need to use this - it can make things confusing.
+
+* _Apply Transform_ - The entire combined linear transformation is computed, and your basis is changed such that this is the new Identity transform. This effect can be applied many times. In general use, you don't need to use this; it can make things confusing.
+
 * _Pop All On Apply_ - Empties the stack when the above option is clicked. 
+
 * _Reset Orientation_ - Removes the effect from "Apply Transform"
+
 * _Pop All Transforms_ - Empties the stack. 
 
 There are many types of primitive linear transformations. Because Javascript is 0 indexed, the first 3 dimensions are numbered 0, 1, and 2. Note that for technical reasons above the INVERSE of each linear transformation is what is actually applied. (read: contravariance and covariance)
@@ -51,7 +57,9 @@ There are many types of primitive linear transformations. Because Javascript is 
 
 * _Shear_ - Applies the Identity transformation, but with a single user-specified off diagonal element non-zero. Note zero indexing and inversion of the shear amount.
 
-In contrast, the "zoom" field in the upper right applies a scaling that is defined to occur after all other transformations. It is provided solely for convenience.
+* _General_ - Not yet implemented.
+
+In contrast, the "zoom" field in the upper right applies a scaling that occurs after all other transformations. It is provided solely for convenience.
 
 ### The Function Editor
 
