@@ -37,19 +37,19 @@ The transformation stack is manipulated with the GUI windows on the upper right 
 
 There are many types of primitive linear transformations. Because Javascript is 0 indexed, the first 3 dimensions are numbered 0, 1, and 2. Note that for technical reasons above the INVERSE of each linear transformation is what is actually applied.
 
-__Euler Rotation__ Rotation on a plane defined by two basis axes. (Note, rotations happen on a plane, NOT around a direction; it only seems that way in 3 dimensions.) Because you can combine multiple rotations, you can generate any rotation by first projecting the desired rotation plane to be coplanar with two basis axes. 
+* _Euler Rotation_ Rotation on a plane defined by two basis axes. (Note, rotations happen on a plane, NOT around a direction; it only seems that way in 3 dimensions.) Because you can combine multiple rotations, you can generate any rotation by first projecting the desired rotation plane to be coplanar with two basis axes. 
 
-__Rodrigues Rotation__ Not yet implemented. 
+* _Rodrigues Rotation_ Not yet implemented. 
 
-__Clifford Rotation__ Not yet implemented.
+* _Clifford Rotation_ Not yet implemented.
 
-__Lie Rotation__ Not yet implemented. 
+* _Lie Rotation_ Not yet implemented. 
 
-__Scale__ Values larger than 1 stretch the space, smaller values contract it. Negative values invert it. 
+* _Scale_ Values larger than 1 stretch the space, smaller values contract it. Negative values invert it. 
 
-__Translation__ Positive move the scalar field "up" along that axis.
+* _Translation_ Positive move the scalar field "up" along that axis.
 
-__Shear__ Applies the Identity transformation, but with a single user-specified off diagonal element non-zero. Note zero indexing and inversion of the shear amount.
+* _Shear_ Applies the Identity transformation, but with a single user-specified off diagonal element non-zero. Note zero indexing and inversion of the shear amount.
 
 ### The Function Editor
 
