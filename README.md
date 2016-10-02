@@ -62,7 +62,9 @@ The pane on the left allows you to write code to define the scalar field you wan
 
 The other buttons in the same panel do not interact with your text editor (even import & export). 
 
-Writing functions in the function editor is done by Javascript. The position of each point is stored consecutively in the x[] array, with an offset of j. Thus, to access dimension number k (again, dimensions are numbered starting at 0), you must access 
+Writing functions in the function editor is done by Javascript. The position of each point is stored consecutively in the x[] array, with an offset of j. Thus, to access dimension number k (again, dimensions are numbered starting at 0), you must access x[j+k]. Just remember to always add j to the index of x[]. This is done because x[] is a flat array, and IsoVis will use the for-loop to compute your function at each lattice point.
+
+IsoVis expects that results are stored contiguously in values[]. Index into values[] with i, offset x[] by j, leave the for-loop alone, and IsoVis will take care of the rest.
 
     function field(x, c, size3, n) { // You can not edit this line.
       // Define any variables you might want.
@@ -80,7 +82,7 @@ If you wanted to look at a cylinder, you could accomplish that by:
       } 
     } 
 
-Note, when using the square root function, make sure you never pass it a negative value. The result will not be what you want. There is no support for complex numbers.
+Note, when using the square root function, make sure you never pass it a negative value. The result will not be what you want. There is no support for complex numbers. Similar caveats apply to functions like logarithm, dividing by 0, etc. 
 
 Maybe you wanted the cylinder to have a varying, periodic radius:
 
@@ -105,6 +107,22 @@ Maybe you wanted to be able to control how the radius changed without applying t
 These coefficients can be conveneintly edited under the "Coefficients" subwindow in the "Shape" window. You can change the number of coefficients by changing "coeffCount" right next to it. Having coeffCount set too high will not hurt things, but it might be confusing for the user. 
 
 If you wanted to use a coordinate system other than Cartiesian, such as spherical, you have to manually apply this conversion yourself. 
+
+Everything we have done so far has been in three dimensions. We can easily define any function we want in any number of dimensions by just settings the "dimensions" field to the appropriate value, accessing x[j+3] or higher when computing values[], and applying 
+
+### Other Features
+
+The amount and speed of the camera bob can be changed in the "Camera" window in the GUI on the left side, under "radius" and "speed". The two fields just above this allow you to switch from projective to orthographic camera, and change the field of view.
+
+The "Screenshot" button on the upper left takes a screenshot. Duh.
+
+"Import" and "Export" next to it allow you to save or share all of your current settings in the JSON format. The exception is the function defined in the text editor! You must save that manually!
+
+Under "Shape" the "memoryOveruse" setting amortizes memory allocation for smoother operation. Decrease it for minimal memory use, but worse performance in the typical case.
+
+The "Abort" button will kill all processes and decrease the resolution. Spamming this button will crash IsoVis. Refresh with F5 if this happens.
+
+Several of the settings under "Material" are broken or half broken, but the "Opacity" setting can be useful.
 
 ## FAQ (aka, WTF's)
 
