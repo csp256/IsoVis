@@ -13,6 +13,8 @@ Please report any bugs, and feel free to make feature requests.
 
 ## How to use IsoVis
 
+I made an [impromptu introduction video](https://www.youtube.com/watch?v=JQlIhUtPM_w&feature=youtu.be) about IsoVis. It is imperfect; please ask any questions you have so I can address them for everyone's edification.
+
 ### What IsoVis does
 
 This section contains technical jargon. You can skip ahead to the next section if you want.
