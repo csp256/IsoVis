@@ -142,7 +142,7 @@ Security policy for web browsers makes this the easiest, safest way to use "Web 
 
 ### WTF? Why are there global variables? 
 
-This started off as a quick, one-off side project. I started off unfamiliar with how Javascript's "var" worked, and ended up making large portions of the core logic use global variables. Whoops! This can be fixed (nothing is reliant upon them being global, per se), but it would be time consuming / slightly annoying so I haven't done it. 
+This started off as a quick, one-off side project. I started off unfamiliar with how Javascript's "var" worked, and ended up making large portions of the core logic use global variables because that is the default behavior of new variables in function scope, for some reason. Whoops! This can be fixed (nothing is reliant upon them being global, per se), but it would be time consuming / slightly annoying so I haven't done it. 
 
 ## Bugs and upcoming features
 
