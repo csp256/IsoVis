@@ -13,7 +13,7 @@ const worker = () => {
  return c;
 };
 
-let input, resets=0;const c=context({window:{prompt:()=>input},resetWorker(){resets++;},updateMaterial(){},updateBackground(){}});
+let input, resets=0;const c=context({defaultText:()=> 'default',beforeChangeCallback(){},myCodeMirror:{off(){},on(){},setValue(){}},window:{prompt:()=>input},resetWorker(){resets++;},updateMaterial(){},updateBackground(){}});
 load(c,'lib/numeric-1.2.6.js');load(c,'js/params.js');load(c,'js/transforms.js');load(c,'js/exportImport.js');
 c.initParams();vm.runInContext('transforms=[plainTransform()];baseOrientation=numeric.identity(n+1);',c);
 input=JSON.stringify([{name:'shapeParams',data:{dimensions:7}}]);c.importFromJSON();
