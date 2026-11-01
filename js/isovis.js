@@ -1,16 +1,16 @@
 function init() {
-	this.renderer = createRenderer();
-	this.workerSourceString = gatherWorkerResource('defaultFieldSource') + gatherWorkerResource('worker');
-//	workerSourceString = workerSourceString + gatherWorkerResource('three');
-	workerSourceString = workerSourceString + gatherWorkerResource('marchingCubes');
+	this.renderer = create_renderer();
+	this.worker_source_string = gather_worker_resource('default_field_source') + gather_worker_resource('worker');
+//	worker_source_string = worker_source_string + gather_worker_resource('three');
+	worker_source_string = worker_source_string + gather_worker_resource('marching_cubes');
 
-	this.vertexBuffer = new Array(8);
-	this.faceBuffer = new Array(8);
-	this.normalBuffer = new Array(8);
+	this.vertex_buffer = new Array(8);
+	this.face_buffer = new Array(8);
+	this.normal_buffer = new Array(8);
 	for (var i=0;i<8;i++) {
-		vertexBuffer[i] = new ArrayBuffer(4);
-		faceBuffer[i] = new ArrayBuffer(4);
-		normalBuffer[i] = new ArrayBuffer(4);
+		vertex_buffer[i] = new ArrayBuffer(4);
+		face_buffer[i] = new ArrayBuffer(4);
+		normal_buffer[i] = new ArrayBuffer(4);
 	}
 	this.meshes = new Array(8);
 	for (var i=0;i<8;i++) {
@@ -20,19 +20,19 @@ function init() {
 		g.setAttribute( 'normal', new THREE.BufferAttribute( new Float32Array(0,0,0), 3 ) );
 		meshes[i] = new THREE.Mesh(g);
 	}
-	updateMaterial();
+	update_material();
 
-	initEditor();
-	initWorkers();
+	init_editor();
+	init_workers();
 
 	renderer.autoClear = false;
 	renderer.setSize(window.innerWidth, window.innerHeight);
-	this.container = document.getElementById( 'ThreeJS' );
+	this.container = document.getElementById( 'three_js' );
 	container.appendChild( renderer.domElement );
-	this.waitingForNextFrame = false;
-	this.makingGIF = false;
-	this.doneWithGIF = true; // Reference makingGIF instead; this is just for an edge case
-	this.startFrame = 0;
+	this.waiting_for_next_frame = false;
+	this.making_gif = false;
+	this.done_with_gif = true; // Reference making_gif instead; this is just for an edge case
+	this.start_frame = 0;
 
 	if (!Array.prototype.last) { // Adds the .last() function to arrays!
 		Array.prototype.last = function(){
@@ -61,49 +61,49 @@ function init() {
   // Match legacy constant-distance lighting and compensate the modern BRDF.
   lights.forEach(function(light) { light.decay = 0; light.intensity = Math.PI; });
 
-	var axisMin = -10;
-	var axisMax =  10;
-	var axisRange = axisMax - axisMin;
-	this.scenePositions = [	new THREE.Vector3(  axisMax/2,  axisMax/2,  axisMax/2),
-							new THREE.Vector3( -axisMax/2,  axisMax/2,  axisMax/2),
-							new THREE.Vector3(  axisMax/2, -axisMax/2,  axisMax/2),
-							new THREE.Vector3( -axisMax/2, -axisMax/2,  axisMax/2),
-							new THREE.Vector3(  axisMax/2,  axisMax/2, -axisMax/2),
-							new THREE.Vector3( -axisMax/2,  axisMax/2, -axisMax/2),
-							new THREE.Vector3(  axisMax/2, -axisMax/2, -axisMax/2),
-							new THREE.Vector3( -axisMax/2, -axisMax/2, -axisMax/2) ];
+	var axis_min = -10;
+	var axis_max =  10;
+	var axis_range = axis_max - axis_min;
+	this.scene_positions = [	new THREE.Vector3(  axis_max/2,  axis_max/2,  axis_max/2),
+							new THREE.Vector3( -axis_max/2,  axis_max/2,  axis_max/2),
+							new THREE.Vector3(  axis_max/2, -axis_max/2,  axis_max/2),
+							new THREE.Vector3( -axis_max/2, -axis_max/2,  axis_max/2),
+							new THREE.Vector3(  axis_max/2,  axis_max/2, -axis_max/2),
+							new THREE.Vector3( -axis_max/2,  axis_max/2, -axis_max/2),
+							new THREE.Vector3(  axis_max/2, -axis_max/2, -axis_max/2),
+							new THREE.Vector3( -axis_max/2, -axis_max/2, -axis_max/2) ];
 	this.quadrances = [0,0,0,0,0,0,0,0,];
 	this.rendered = [false,false,false,false,false,false,false,false,];
-	this.renderOrder = [0,0,0,0,0,0,0,0,];
+	this.render_order = [0,0,0,0,0,0,0,0,];
 
 	scene = new THREE.Scene();
-	scene.add( new THREE.AxesHelper(axisMax) );
+	scene.add( new THREE.AxesHelper(axis_max) );
 
 	this.transforms = [];
-	transforms.push( plainTransform() );
+	transforms.push( plain_transform() );
 	transforms.last().axis2 = 3;
 	transforms.last().degrees = 24;
 
-	this.baseOrientation = numeric.identity(n+1);
+	this.base_orientation = numeric.identity(n+1);
 
-	this.sizeDirty = false;
-	this.coordsDirty = false;
-	this.scalarFieldDirty = false;
-	this.meshDirty = false;
-	this.setSizeDirty = function(value) { sizeDirty = true; }
-	this.setCoordsDirty = function(value) {	coordsDirty = true;  }
-	this.setScalarFieldDirty = function(value) { scalarFieldDirty = true; }
-	this.setMeshDirty = function(value) { meshDirty = true; };
-	this.updateTransformType = function(value) { coordsDirty = true; buildGUI(); }
+	this.size_dirty = false;
+	this.coords_dirty = false;
+	this.scalar_field_dirty = false;
+	this.mesh_dirty = false;
+	this.set_size_dirty = function(value) { size_dirty = true; }
+	this.set_coords_dirty = function(value) {	coords_dirty = true;  }
+	this.set_scalar_field_dirty = function(value) { scalar_field_dirty = true; }
+	this.set_mesh_dirty = function(value) { mesh_dirty = true; };
+	this.update_transform_type = function(value) { coords_dirty = true; build_gui(); }
 
-	resetScenes();
-	resetWorker(getURLResolution(shapeParams.resolution));
-	//buildGUI();
-	updateStats();
-	updateBackground();
+	reset_scenes();
+	reset_worker(get_url_resolution(shape_params.resolution));
+	//build_gui();
+	update_stats();
+	update_background();
 }
 
-function resetScenes() {
+function reset_scenes() {
 	if (typeof scenes != 'undefined' && scenes.length == 8) return;
 	this.scenes = [];
 	for (var k=0; k<8; k++) {
@@ -115,7 +115,7 @@ function resetScenes() {
 	}
 }
 
-function updateSceneMesh(octant, mesh) {
+function update_scene_mesh(octant, mesh) {
 	var target = scenes[octant];
 	// Lights are permanent; only the previous surface belongs to this slot.
 	for (var i=target.children.length-1; i>=0; i--) {
@@ -124,49 +124,49 @@ function updateSceneMesh(octant, mesh) {
 	target.add(mesh);
 }
 
-function updateMaterial() {
-	var oldMaterial = typeof myMaterial == 'undefined' ? null : myMaterial;
-	switch (parseInt(materialParams.material)) {
+function update_material() {
+	var old_material = typeof my_material == 'undefined' ? null : my_material;
+	switch (parseInt(material_params.material)) {
 		default:
 		case 0:
-			myMaterial = new THREE.MeshBasicMaterial();
+			my_material = new THREE.MeshBasicMaterial();
 		break;
 		case 1:
-			myMaterial = createDepthDisplayMaterial();
+			my_material = create_depth_display_material();
 		break;
 	//	case 2:
-	//		myMaterial = new THREE.MeshFaceMaterial();
+	//		my_material = new THREE.MeshFaceMaterial();
 	//	break;
 		case 3:
-			myMaterial = new THREE.MeshLambertMaterial();
+			my_material = new THREE.MeshLambertMaterial();
 		break;
 		case 4:
-			myMaterial = new THREE.MeshNormalMaterial();
+			my_material = new THREE.MeshNormalMaterial();
 		break;
 		case 5:
-			myMaterial = new THREE.MeshPhongMaterial();
+			my_material = new THREE.MeshPhongMaterial();
 		break;
 	}
-	myMaterial.transparent = true;
-	myMaterial.side = materialParams.side;
-	myMaterial.opacity = materialParams.opacity;
-	myMaterial.wireframe = materialParams.wireframe;
-	myMaterial.blending = parseInt(materialParams.blending);
-	myMaterial.blendEquation = parseInt(materialParams.equation);
-	myMaterial.depthTest = materialParams.depthTest;
-	myMaterial.depthWrite = materialParams.depthWrite;
+	my_material.transparent = true;
+	my_material.side = material_params.side;
+	my_material.opacity = material_params.opacity;
+	my_material.wireframe = material_params.wireframe;
+	my_material.blending = parseInt(material_params.blending);
+	my_material.blendEquation = parseInt(material_params.equation);
+	my_material.depthTest = material_params.depth_test;
+	my_material.depthWrite = material_params.depth_write;
 	for (var i=0; i<8; i++) {
-		meshes[i].material = myMaterial;
+		meshes[i].material = my_material;
 	}
-	if (oldMaterial) oldMaterial.dispose();
+	if (old_material) old_material.dispose();
 }
 
 function animate() {
-	cameraWobble();
+	camera_wobble();
 	render();
-	if (makingGIF && doneWithGIF) stopGIF();
-	else if (makingGIF && !waitingForAnyWebWorker()) scheduleGIFCapture();
-	cameraUnwobble();
+	if (making_gif && done_with_gif) stop_gif();
+	else if (making_gif && !waiting_for_any_web_worker()) schedule_gif_capture();
+	camera_unwobble();
 	update();
 	requestAnimationFrame( animate );
 }
@@ -174,10 +174,10 @@ function animate() {
 function update() {
 	controls.update();
 	stats.update();
-	if (!makingGIF) {
-		var request = sizeDirty ? 'init' : coordsDirty ? 'coords' : scalarFieldDirty ? 'scalarField' : meshDirty ? 'geometry' : null;
-		if (request && talkToWorker(request)) {
-			sizeDirty = coordsDirty = scalarFieldDirty = meshDirty = false;
+	if (!making_gif) {
+		var request = size_dirty ? 'init' : coords_dirty ? 'coords' : scalar_field_dirty ? 'scalar_field' : mesh_dirty ? 'geometry' : null;
+		if (request && talk_to_worker(request)) {
+			size_dirty = coords_dirty = scalar_field_dirty = mesh_dirty = false;
 		}
 	}
 }
@@ -185,34 +185,34 @@ function update() {
 function render() {
 	renderer.clear();
 	for (var i=0;i<8;i++) {
-		quadrances[i] = camera.position.distanceToSquared(scenePositions[i]);
+		quadrances[i] = camera.position.distanceToSquared(scene_positions[i]);
 		rendered[i] = false;
 	}
 	for (var i=0;i<8;i++) {
-		var maxQuadrance = Number.NEGATIVE_INFINITY;
-		var furthestOctant = -1;
+		var max_quadrance = Number.NEGATIVE_INFINITY;
+		var furthest_octant = -1;
 		for (var j=0;j<8;j++) { // Find further away unrendered octant.
 			if (!rendered[j]) {
-				if (quadrances[j] > maxQuadrance) {
-					maxQuadrance = quadrances[j];
-					furthestOctant = j;
+				if (quadrances[j] > max_quadrance) {
+					max_quadrance = quadrances[j];
+					furthest_octant = j;
 				}
 			}
 		}
-		if (furthestOctant == -1) {
+		if (furthest_octant == -1) {
 			console.log("ERROR");
 		}
-		rendered[furthestOctant] = true;
-		renderOrder[i] = furthestOctant;
+		rendered[furthest_octant] = true;
+		render_order[i] = furthest_octant;
 	}
 	for (var i=0; i<8; i++) {
-		renderer.render(scenes[renderOrder[i]], camera);
+		renderer.render(scenes[render_order[i]], camera);
 	}
 	for (var i=0;i<8;i++) {
 //		scene.remove(meshes[i]);
 	}
 	renderer.clearDepth();
-	if (cameraParams.axes) {
+	if (camera_params.axes) {
 		renderer.render( scene, camera );
 	}
 }

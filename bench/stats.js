@@ -1,5 +1,5 @@
 // Shared by the browser harness and tiny Bun fixture.
-var IsoVisBenchStats = {
+var isovis_bench_stats = {
   summarize: function(values) {
     if (!values.length) return null;
     var sorted = values.slice().sort(function(a,b) {return a-b;});

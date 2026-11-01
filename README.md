@@ -5,14 +5,14 @@ Create higher dimensional shapes in a web browser.
 
 ## Run locally
 
-Download or clone this repository, keeping `IsoVis.html`, `js/`, `lib/`, and
+Download or clone this repository, keeping `isovis.html`, `js/`, `lib/`, and
 `css/` together. Serve the folder over local HTTP, for example:
 
 ```sh
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Open http://127.0.0.1:8000/IsoVis.html in Chrome. On systems where Python is
+Open http://127.0.0.1:8000/isovis.html in Chrome. On systems where Python is
 named `python`, use that command instead. Any static HTTP server works; Bun's
 optional `bun bench/serve.cjs` also serves the app at port 8080.
 
@@ -27,7 +27,7 @@ once the files are downloaded.
 or WebGL1 fallback. If WebGL2 is unavailable, an explanatory startup banner appears
 before workers are created. Chrome is the primary verification target; other
 browsers/devices have not been validated. The default branch is `main`.
-See [the Three.js migration notes](docs/threejs-upgrade.md) for compatibility,
+See [the Three.js migration notes](docs/threejs_upgrade.md) for compatibility,
 visual comparisons, and measurement limits. The previous r73 app remains in Git
 at `23dc808140f973125b929bfec71bcae613ada32d` if an older device needs it.
 
@@ -43,6 +43,10 @@ matching browser/hardware settings before claiming a speedup or changing the
 hand-tuned marching-cubes traversal. Check upstream releases before modifying
 vendored libraries; pin compatible versions and retain source/license details.
 Three.js and its controls need a coordinated compatibility check.
+
+First-party code follows snake_case for variables, functions, properties and
+filenames, and CamelCase for types. See [naming conventions](docs/naming.md),
+including third-party API and saved-session compatibility boundaries.
 
 You can edit every parameter defining the shape in real time. Write your own JavaScript function & adjust "iso" to see different parts of the function. Scale, rotate, & translate through any dimension.
 
@@ -104,7 +108,7 @@ In contrast, the "zoom" field in the upper right applies a scaling that occurs a
 
 ### The Function Editor
 
-The pane on the left allows you to write code to define the scalar field you want to visualize. Change the width in the "Shape" GUI window using "editorWidth". Set the number of dimensions you will be working in the same window with "dimensions". The "isolevel" field changes what value you are looking at. 
+The pane on the left allows you to write code to define the scalar field you want to visualize. Change the width in the "Shape" GUI window using "editor_width". Set the number of dimensions you will be working in the same window with "dimensions". The "isolevel" field changes what value you are looking at.
 
 * *Update* - Click to submit your changes to the Web Workers. *If you make an error, there will be no error message.* It will simply compile the default function instead.
 * *Reset* - Resets the text editor. 
@@ -153,7 +157,7 @@ Maybe you wanted to be able to control how the radius changed without applying t
       } 
     } 
 
-These coefficients can be conveneintly edited under the "Coefficients" subwindow in the "Shape" window. You can change the number of coefficients by changing "coeffCount" right next to it. Having coeffCount set too high will not hurt things, but it might be confusing for the user. 
+These coefficients can be conveneintly edited under the "Coefficients" subwindow in the "Shape" window. You can change the number of coefficients by changing "coeff_count" right next to it. Having coeff_count set too high will not hurt things, but it might be confusing for the user.
 
 If you wanted to use a coordinate system other than Cartiesian, such as spherical, you have to manually apply this conversion yourself. 
 
@@ -183,7 +187,7 @@ Invalid settings should be corrected rather than bypassed. A failed calculation
 reports an error; edit the function and click Update to retry. Abort terminates
 an unresponsive calculation.
 
-Under "Shape" the "memoryOveruse" setting amortizes memory allocation for smoother operation. Decrease it for minimal memory use, but worse performance in the typical case.
+Under "Shape" the "memory_overuse" setting amortizes memory allocation for smoother operation. Decrease it for minimal memory use, but worse performance in the typical case.
 
 The **Abort** button terminates and replaces the calculation workers and lowers
 the resolution to 10. It keeps the active submitted function, not unsubmitted
@@ -210,7 +214,7 @@ This started off as a quick, one-off side project. I started off unfamiliar with
 - GIF/frame export is experimental and is not exposed as a supported GUI button.
   It downloads PNG frames rather than encoding a GIF. The built-in sequence
   expects two rotation transforms; it is not a general animation editor. Review
-  the implementation before using console-driven `startGIF()`; `stopGIF()`
+  the implementation before using console-driven `start_gif()`; `stop_gif()`
   cancels its capture/advance timers. Ordinary screenshots are separate.
 - High resolution and higher dimensions can require substantial memory. Start
   small; historical memory figures above are not current measurements for every

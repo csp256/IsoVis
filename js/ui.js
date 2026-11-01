@@ -1,5 +1,5 @@
 // dat.GUI mutates before invoking callbacks: restore invalid edits immediately.
-function validatedNumberControl(folder, object, key, validate, changed, finish, bounds) {
+function validated_number_control(folder, object, key, validate, changed, finish, bounds) {
   var previous = object[key];
   // Set ranges before callbacks: dat.GUI can replace boxes with sliders when
   // bounds are added later, dropping handlers attached to the original box.
@@ -11,7 +11,7 @@ function validatedNumberControl(folder, object, key, validate, changed, finish, 
       accepted = false;
       object[key] = previous;
       control.updateDisplay();
-      reportWorkerError(error.message);
+      report_worker_error(error.message);
       return;
     }
     accepted = true;
@@ -23,211 +23,211 @@ function validatedNumberControl(folder, object, key, validate, changed, finish, 
 }
 
 // Keep lifecycle adaptation in application code; the vendored build is pristine.
-function destroyGUI(gui) {
-  function stopListening(folder) {
+function destroy_gui(gui) {
+  function stop_listening(folder) {
     folder.__listening.length = 0;
-    Object.keys(folder.__folders).forEach(function(name) { stopListening(folder.__folders[name]); });
+    Object.keys(folder.__folders).forEach(function(name) { stop_listening(folder.__folders[name]); });
   }
   // End any active numeric/color/panel drag before removing its controls.
   window.dispatchEvent(new MouseEvent('mouseup'));
-  stopListening(gui);
+  stop_listening(gui);
   gui.destroy();
 
 }
 
-function buildLeftGUI() {
-  if (typeof leftgui == 'undefined') {
+function build_left_gui() {
+  if (typeof left_gui == 'undefined') {
     // Default state.
-    var closedState = { Shape: false, Camera: true, Material: true };
+    var closed_state = { Shape: false, Camera: true, Material: true };
   } else {
-    var closedState = { Shape: leftgui.__folders.Shape.closed, Camera: leftgui.__folders.Camera.closed, Material: leftgui.__folders.Material.closed };
-    destroyGUI(leftgui);
+    var closed_state = { Shape: left_gui.__folders.Shape.closed, Camera: left_gui.__folders.Camera.closed, Material: left_gui.__folders.Material.closed };
+    destroy_gui(left_gui);
   }
-	leftgui = new dat.GUI({hideable:false});
-  leftgui.domElement.id = 'leftGUI';
+	left_gui = new dat.GUI({hideable:false});
+  left_gui.domElement.id = 'left_gui';
 
-  shapeFolder(leftgui);
-  leftgui.__folders.Shape.closed = closedState.Shape;
+  shape_folder(left_gui);
+  left_gui.__folders.Shape.closed = closed_state.Shape;
 
-  cameraFolder(leftgui);
-  leftgui.__folders.Camera.closed = closedState.Camera;
+  camera_folder(left_gui);
+  left_gui.__folders.Camera.closed = closed_state.Camera;
 
-  materialFolder(leftgui)
-  leftgui.__folders.Material.closed = closedState.Material;
+  material_folder(left_gui)
+  left_gui.__folders.Material.closed = closed_state.Material;
 
-  leftgui.__closeButton.style.position = 'fixed';
-  leftgui.__closeButton.style.left = -10000;
+  left_gui.__closeButton.style.position = 'fixed';
+  left_gui.__closeButton.style.left = -10000;
 }
 
-function updateCoeff() {
-  setScalarFieldDirty();
-  while (shapeParams.coeff.length < shapeParams.coeffCount) {
-    shapeParams.coeff.push(cachedCoeff[shapeParams.coeff.length]);
+function update_coeff() {
+  set_scalar_field_dirty();
+  while (shape_params.coeff.length < shape_params.coeff_count) {
+    shape_params.coeff.push(cached_coeff[shape_params.coeff.length]);
   }
-  while (shapeParams.coeffCount < shapeParams.coeff.length) {
-    cachedCoeff[shapeParams.coeff.length-1] = shapeParams.coeff.pop();
+  while (shape_params.coeff_count < shape_params.coeff.length) {
+    cached_coeff[shape_params.coeff.length-1] = shape_params.coeff.pop();
   }
 
-  var c = leftgui.__folders.Shape.__folders.Coefficients.closed;
-  leftgui.__folders.Shape.__folders.Coefficients.close();
-  leftgui.__folders.Shape.removeFolder(leftgui.__folders.Shape.__folders.Coefficients);
-  leftgui.__folders.Shape.onResize();
-  var subFolder = leftgui.__folders.Shape.addFolder('Coefficients');
-  for (var i=0; i<shapeParams.coeffCount; i++) {
-    subFolder.add(shapeParams.coeff, i, shapeParams[i]).onChange( setScalarFieldDirty );
+  var c = left_gui.__folders.Shape.__folders.Coefficients.closed;
+  left_gui.__folders.Shape.__folders.Coefficients.close();
+  left_gui.__folders.Shape.removeFolder(left_gui.__folders.Shape.__folders.Coefficients);
+  left_gui.__folders.Shape.onResize();
+  var sub_folder = left_gui.__folders.Shape.addFolder('Coefficients');
+  for (var i=0; i<shape_params.coeff_count; i++) {
+    sub_folder.add(shape_params.coeff, i, shape_params[i]).onChange( set_scalar_field_dirty );
   }
   if (!c || typeof c == 'undefined') {
-    subFolder.open();
+    sub_folder.open();
   } else {
-    subFolder.close();
+    sub_folder.close();
   }
 }
 
-function dimensionsChanged() {
+function dimensions_changed() {
   try {
-    var nextStack = normalizedTransformStack(transforms, shapeParams.dimensions, false);
+    var next_stack = normalized_transform_stack(transforms, shape_params.dimensions, false);
   } catch (error) {
-    shapeParams.dimensions = n;
-    reportWorkerError(error.message);
-    buildLeftGUI();
+    shape_params.dimensions = n;
+    report_worker_error(error.message);
+    build_left_gui();
     return;
   }
-  n = shapeParams.dimensions;
-  transforms = nextStack;
-  resetOrientation();
-  resetWorker(shapeParams.resolution);
+  n = shape_params.dimensions;
+  transforms = next_stack;
+  reset_orientation();
+  reset_worker(shape_params.resolution);
 }
 
-function shapeFolder(g) {
+function shape_folder(g) {
   var folder = g.addFolder('Shape');
-  folder.add(shapeParams, 'editorWidth').min(0).max(window.innerWidth*0.5 /* - Math.min(245, 2*parseInt(leftgui.domElement.style.width)) */).step(1).onFinishChange( updateEditor );
-  validatedNumberControl(folder, shapeParams, 'resolution', requireResolution, setSizeDirty, true, [2,65,1]);
-  folder.add(shapeParams, 'reset').name('Abort').onChange( resetWorker10 );
-  folder.add(shapeParams, 'memoryOveruse').min(0).max(1).step(0.01);
-  folder.add(shapeParams, 'interpolate').onChange( setMeshDirty );
-  folder.add(shapeParams, 'iso').onChange( setMeshDirty );
-  folder.add(shapeParams, 'dimensions').min(3).step(1).onFinishChange( dimensionsChanged );
-  folder.add(shapeParams, 'coeffCount').min(1).max(shapeParams.maxCoeffCount).step(1).onChange( updateCoeff );
-  var subFolder = folder.addFolder('Coefficients');
-  for (var i=0; i<shapeParams.coeffCount; i++) {
-    subFolder.add(shapeParams.coeff, i, shapeParams[i]).onChange( setScalarFieldDirty );
+  folder.add(shape_params, 'editor_width').min(0).max(window.innerWidth*0.5 /* - Math.min(245, 2*parseInt(left_gui.domElement.style.width)) */).step(1).onFinishChange( update_editor );
+  validated_number_control(folder, shape_params, 'resolution', require_resolution, set_size_dirty, true, [2,65,1]);
+  folder.add(shape_params, 'reset').name('Abort').onChange( reset_worker10 );
+  folder.add(shape_params, 'memory_overuse').min(0).max(1).step(0.01);
+  folder.add(shape_params, 'interpolate').onChange( set_mesh_dirty );
+  folder.add(shape_params, 'iso').onChange( set_mesh_dirty );
+  folder.add(shape_params, 'dimensions').min(3).step(1).onFinishChange( dimensions_changed );
+  folder.add(shape_params, 'coeff_count').min(1).max(shape_params.max_coeff_count).step(1).onChange( update_coeff );
+  var sub_folder = folder.addFolder('Coefficients');
+  for (var i=0; i<shape_params.coeff_count; i++) {
+    sub_folder.add(shape_params.coeff, i, shape_params[i]).onChange( set_scalar_field_dirty );
   }
-  subFolder.open();
+  sub_folder.open();
 }
 
-function cameraFolder(g) {
+function camera_folder(g) {
   var folder = g.addFolder('Camera');
-  folder.add(cameraParams, 'perspective').onChange( changeCamera );
-  if (cameraParams.perspective) {
-    folder.add(cameraParams, 'fov').min(0.05).max(179.95).onChange( makeCamera );
+  folder.add(camera_params, 'perspective').onChange( change_camera );
+  if (camera_params.perspective) {
+    folder.add(camera_params, 'fov').min(0.05).max(179.95).onChange( make_camera );
   } else {
-    folder.add(cameraParams, 'scale').min(0.05).onChange( makeCamera );
+    folder.add(camera_params, 'scale').min(0.05).onChange( make_camera );
   }
-  folder.add(cameraParams, 'radius').min(0).max(10).step(0.01);
-  folder.add(cameraParams, 'speed').min(0).max(10).step(0.01);
-  folder.add(cameraParams, 'axes');
+  folder.add(camera_params, 'radius').min(0).max(10).step(0.01);
+  folder.add(camera_params, 'speed').min(0).max(10).step(0.01);
+  folder.add(camera_params, 'axes');
   // A native RGB picker avoids the upstream ColorController's retained global
   // mouseup closure while preserving a simple background-color control.
-  var background = folder.add(cameraParams, 'background').onChange(updateBackground).listen();
+  var background = folder.add(camera_params, 'background').onChange(update_background).listen();
   background.__input.type = 'color';
   background.__input.addEventListener('input', function() { background.setValue(this.value); });
-  folder.add(cameraParams, 'fps').onChange( updateStats );
+  folder.add(camera_params, 'fps').onChange( update_stats );
 }
 
-function toggleNormals() { // This might make the mesh invisible... best to do that when they click it and not when they change the iso next...
-  setMeshDirty();
-  updateMaterial();
+function toggle_normals() { // This might make the mesh invisible... best to do that when they click it and not when they change the iso next...
+  set_mesh_dirty();
+  update_material();
 }
 
-function materialFolder(g) {
+function material_folder(g) {
   var folder = g.addFolder('Material');
-  folder.add(materialParams, 'calcNormals').onChange( toggleNormals );
-	folder.add(materialParams, 'material', {Basic:0, Depth:1, /*Face:2,*/ Lambert:3, Normals:4, Phong:5}).onChange( updateMaterial );
-	folder.add(materialParams, 'blending', {None:THREE.NoBlending, Standard:THREE.NormalBlending, Additive:THREE.AdditiveBlending, Subtractive:THREE.SubtractiveBlending, Multiplicative:THREE.MultiplyBlending, Custom:THREE.CustomBlending}).onChange( updateMaterial );
-	folder.add(materialParams, 'side', {Front:THREE.FrontSide, Back:THREE.BackSide, Both:THREE.DoubleSide}).onChange( updateMaterial );
-	folder.add(materialParams, 'wireframe').onChange( updateMaterial );
-  folder.add(materialParams, 'opacity').min(0).max(1).step(0.01).onChange( updateMaterial );
-	folder.add(materialParams, 'depthTest').onChange( updateMaterial );
-	folder.add(materialParams, 'depthWrite').onChange( updateMaterial );
-  folder.add(materialParams, 'equation', {Add:THREE.AddEquation, Subtract:THREE.SubtractEquation, ReverseSubtract:THREE.ReverseSubtractEquation, Min:THREE.MinEquation, Max:THREE.MaxEquation}).onChange( updateMaterial );
+  folder.add(material_params, 'calc_normals').onChange( toggle_normals );
+	folder.add(material_params, 'material', {Basic:0, Depth:1, /*Face:2,*/ Lambert:3, Normals:4, Phong:5}).onChange( update_material );
+	folder.add(material_params, 'blending', {None:THREE.NoBlending, Standard:THREE.NormalBlending, Additive:THREE.AdditiveBlending, Subtractive:THREE.SubtractiveBlending, Multiplicative:THREE.MultiplyBlending, Custom:THREE.CustomBlending}).onChange( update_material );
+	folder.add(material_params, 'side', {Front:THREE.FrontSide, Back:THREE.BackSide, Both:THREE.DoubleSide}).onChange( update_material );
+	folder.add(material_params, 'wireframe').onChange( update_material );
+  folder.add(material_params, 'opacity').min(0).max(1).step(0.01).onChange( update_material );
+	folder.add(material_params, 'depth_test').onChange( update_material );
+	folder.add(material_params, 'depth_write').onChange( update_material );
+  folder.add(material_params, 'equation', {Add:THREE.AddEquation, Subtract:THREE.SubtractEquation, ReverseSubtract:THREE.ReverseSubtractEquation, Min:THREE.MinEquation, Max:THREE.MaxEquation}).onChange( update_material );
 
 }
 
 // /////////////////////////////
 
-function buildRightGUI() {
-  if (typeof rightgui == 'undefined') {
-    var closedState = {Transforms: true};
+function build_right_gui() {
+  if (typeof right_gui == 'undefined') {
+    var closed_state = {Transforms: true};
   } else {
-    //for (obj in rightgui.__folders) { ... }
-    var closedState = { Transforms: rightgui.__folders.Transforms.closed };
-    destroyGUI(rightgui);
+    //for (obj in right_gui.__folders) { ... }
+    var closed_state = { Transforms: right_gui.__folders.Transforms.closed };
+    destroy_gui(right_gui);
   }
-  rightgui = new dat.GUI({hideable:false});
+  right_gui = new dat.GUI({hideable:false});
 
-  validatedNumberControl(rightgui, transformParams, 'zoom', requireZoom, setCoordsDirty, false, [0.000001]);
+  validated_number_control(right_gui, transform_params, 'zoom', require_zoom, set_coords_dirty, false, [0.000001]);
 
-  transformsFolder(rightgui);
-  rightgui.__folders.Transforms.closed = closedState.Transforms;
+  transforms_folder(right_gui);
+  right_gui.__folders.Transforms.closed = closed_state.Transforms;
 
 	for (i=0; i<transforms.length; i++) {
 		switch (transforms[i].type) {
 			case "0": // EULER ROTATION
-				var folder = rightgui.addFolder((i+1)+' Euler Rotation');
-				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( updateTransformType );
-				folder.add(transforms[i], 'axis1').min(0).max(n-1).step(1).onChange( setCoordsDirty );
-				folder.add(transforms[i], 'axis2').min(0).max(n-1).step(1).onChange( setCoordsDirty );
-				folder.add(transforms[i], 'degrees').min(-180).max(180).onChange( setCoordsDirty );
+				var folder = right_gui.addFolder((i+1)+' Euler Rotation');
+				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( update_transform_type );
+				folder.add(transforms[i], 'axis1').min(0).max(n-1).step(1).onChange( set_coords_dirty );
+				folder.add(transforms[i], 'axis2').min(0).max(n-1).step(1).onChange( set_coords_dirty );
+				folder.add(transforms[i], 'degrees').min(-180).max(180).onChange( set_coords_dirty );
 			break;
 			case "1": // SCALE
-				var folder = rightgui.addFolder((i+1)+' Scale');
-				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( updateTransformType );
-        for (var k=0; k<n; k++) validatedNumberControl(folder, transforms[i].s, k, requireScale, setCoordsDirty, false, [-Infinity]);
+				var folder = right_gui.addFolder((i+1)+' Scale');
+				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( update_transform_type );
+        for (var k=0; k<n; k++) validated_number_control(folder, transforms[i].s, k, require_scale, set_coords_dirty, false, [-Infinity]);
 			break;
 			case "2": // TRANSLATE
-				var folder = rightgui.addFolder((i+1)+' Translation');
-				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( updateTransformType );
-        for (var k=0; k<n; k++) folder.add(transforms[i].d, k, transforms[i].d[k]).min(-Infinity).name('Dimension '+(k+1).toString()).onChange(setCoordsDirty);
+				var folder = right_gui.addFolder((i+1)+' Translation');
+				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( update_transform_type );
+        for (var k=0; k<n; k++) folder.add(transforms[i].d, k, transforms[i].d[k]).min(-Infinity).name('Dimension '+(k+1).toString()).onChange(set_coords_dirty);
 			break;
 			case "3": // SHEAR
-				var folder = rightgui.addFolder((i+1)+' Shear');
-				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( updateTransformType );
-				folder.add(transforms[i], 'row').min(0).max(n-1).step(1).onChange( setCoordsDirty );
-				folder.add(transforms[i], 'col').min(0).max(n-1).step(1).onChange( setCoordsDirty );
-				folder.add(transforms[i], 'shear').onChange( setCoordsDirty );
+				var folder = right_gui.addFolder((i+1)+' Shear');
+				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( update_transform_type );
+				folder.add(transforms[i], 'row').min(0).max(n-1).step(1).onChange( set_coords_dirty );
+				folder.add(transforms[i], 'col').min(0).max(n-1).step(1).onChange( set_coords_dirty );
+				folder.add(transforms[i], 'shear').onChange( set_coords_dirty );
 			break;
 			default: // error!
-				console.log('error in switch in buildGUI()');
+				console.log('error in switch in build_gui()');
 		}
 		if (i==transforms.length-1) {
 			folder.open();
 		}
 	}
 
-  adjustRightGUI();
+  adjust_right_gui();
 }
 
-function transformsFolder(g) {
+function transforms_folder(g) {
   var folder = g.addFolder('Transforms');
-  folder.add(transformParams, 'invertOrder').onChange( invertOrder );
-  folder.add(transformParams, 'pushTransform').onChange( pushTransform );
-  folder.add(transformParams, 'popTransform').onChange( popTransform );
-  folder.add(transformParams, 'applyTransforms').onChange( applyTransforms );
-  folder.add(transformParams, 'popAllOnApply');
-  folder.add(transformParams, 'resetOrientation').onChange( resetOrientation );
-  folder.add(transformParams, 'popAllTransforms').onChange( popAllTransforms );
+  folder.add(transform_params, 'invert_order').onChange( invert_order );
+  folder.add(transform_params, 'push_transform').onChange( push_transform );
+  folder.add(transform_params, 'pop_transform').onChange( pop_transform );
+  folder.add(transform_params, 'apply_transforms').onChange( apply_transforms );
+  folder.add(transform_params, 'pop_all_on_apply');
+  folder.add(transform_params, 'reset_orientation').onChange( reset_orientation );
+  folder.add(transform_params, 'pop_all_transforms').onChange( pop_all_transforms );
 }
 
-function adjustRightGUI() {
-  rightgui.domElement.style.position = 'fixed';
-  rightgui.domElement.style.left = (window.innerWidth - parseInt(rightgui.domElement.style.width)).toString() + 'px';
-  rightgui.domElement.style.height = (window.innerHeight - 50).toString() + 'px';
+function adjust_right_gui() {
+  right_gui.domElement.style.position = 'fixed';
+  right_gui.domElement.style.left = (window.innerWidth - parseInt(right_gui.domElement.style.width)).toString() + 'px';
+  right_gui.domElement.style.height = (window.innerHeight - 50).toString() + 'px';
 }
 
 // /////////////////////////////
 
-function buildGUI() {
-  buildLeftGUI();
-  buildRightGUI();
-  updateEditor();
+function build_gui() {
+  build_left_gui();
+  build_right_gui();
+  update_editor();
 }

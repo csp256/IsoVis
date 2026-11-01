@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>IsoVis</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link rel=stylesheet href="css/base.css"/>
+		<link rel="stylesheet" href="css/codemirror.css">
+		<link rel="stylesheet" href="css/docs.css">
+		<link rel="stylesheet" href="css/pastel-on-dark.css">
+		<style type="text/css">
+		      .CodeMirror {border: 0px solid black; font-size:13px}
+		</style>
+
+	</head>
+	<body>
+		<div id="three_js" style="position: absolute; left:0px; top:0px"></div>
+		<div id="codemirror" style="position: absolute; left: 240px; top: 0px"></div>
+		<div id="toolbar"></div>
+
+		<script src="lib/numeric-1.2.6.js"></script>
+		<script type="importmap">
+{"imports":{"three":"./lib/three-r187/three.module.js"}}
+		</script>
+		<script src="lib/Stats.js"></script>
+		<script src="lib/THREEx.KeyboardState.js"></script>
+		<script src="lib/THREEx.FullScreen.js"></script>
+		<script src="lib/THREEx.WindowResize.js"></script>
+		<script src='lib/dat.gui.min.js'></script>
+		<script src='lib/url.js'></script>
+		<script src="lib/codemirror.js"></script>
+		<script src="lib/javascriptMode.js"></script>
+		<script src="lib/FileSaver.js"></script>
+
+		<script src='js/misc.js'></script>
+		<script src='js/worker_interface.js'></script>
+		<script src='js/transforms.js'></script>
+		<script src='js/ui.js'></script>
+		<script src='js/params.js'></script>
+		<script src='js/camera.js'></script>
+		<script src='js/editor.js'></script>
+		<script src='js/export_import.js'></script>
+		<script src='js/renderer.js'></script>
+		<script src='js/isovis.js'></script>
+
+		<script id='default_field_source'>
+function default_field_body() {
+ return "// Missing default-field coefficients use their startup defaults.\nvar defaults=[3.5,3,1.5,3,-1,2];\nvar coefficients=[];\nfor(var k=0;k<6;k++) coefficients[k]=k<c.length ? c[k] : defaults[k];\nc=coefficients;\nfor (var i=0,j=0; i<size3; i++,j+=n) {\n var t = Math.sqrt(Math.abs(x[j]*x[j] + x[j+1]*x[j+1] - c[0])) - c[1];\n var u = Math.sqrt(Math.abs(x[j+2]*x[j+2] + (n > 3 ? x[j+3]*x[j+3] : 0) - c[2])) - c[3];\n values[i] = t*t + u*u - (n > 4 ? c[4]*Math.sin(c[5]*x[j+4]) : 0);\n}";
+}
+		</script>
+
+		<script type='text/worker' id='worker'>
+
+		  var setup = function(dim, s, octant) {
+		  	this.n = dim;
+
+        var axis_min = -10;
+        var axis_max =  10;
+        var axis_range = axis_max - axis_min;
+
+		  	this.size = s;
+		  	this.size2 = size*size;
+		  	this.size3 = size*size*size;
+
+				if (typeof this.points == 'undefined') {
+		  		this.points = new Float32Array(3*size3);
+				}
+				if (points.length < 3*size3) {
+					this.points = new Float32Array(3*size3);
+				}
+
+				if (typeof this.values == 'undefined') {
+					this.values = new Float32Array(size3);
+				}
+				if (values.length < size3) {
+					this.values = new Float32Array(size3);
+				}
+
+				if (typeof this.coords == 'undefined') {
+		  		this.coords = new Float32Array(n*size3);
+		  	}
+		  	if (coords.length < n*size3) {
+					this.coords = new Float32Array(n*size3);
+		  	}
+
+				if (typeof this.cube_index_table == 'undefined') {
+					this.cube_index_table = new Int16Array(size3);
+				}
+				if (cube_index_table.length < size3) {
+					this.cube_index_table = new Int16Array(size3);
+				}
+
+        var x_offset = ((octant & 1) > 0) ? axis_min : 0;
+        var y_offset = ((octant & 2) > 0) ? axis_min : 0;
+        var z_offset = ((octant & 4) > 0) ? axis_min : 0;
+
+		  	var index = 0;
+        var spacing = 0.5 * axis_range / (size - 1);
+		  	for (var k = 0; k < size; k++) {
+          var z = z_offset + spacing * k;
+		  		for (var j = 0; j < size; j++) {
+            var y = y_offset + spacing * j;
+		  			for (var i = 0; i < size; i++, index+=3) {
+							points[index  ] = x_offset + spacing * i; // Could do strength reduction on this.
+							points[index+1] = y;
+							points[index+2] = z;
+		  			}
+		  		}
+		  	}
+		  }
+
+		  function update_coords_function(n, s) {
+		  	a = '';
+        a = a + 'var c_index = 0;\n';
+        a = a + 'var p_index = 0;\n';
+        a = a + 'var translation = [';
+		  	for (var i=0; i<n; i++) {
+          a = a + 'r['+i+']['+n+'],'
+		  	}
+		  	a = a + '];\n';
+
+		  	a = a + 'var c1 = [';
+		  	for (var i=0; i<n; i++) {
+          a = a + 'r['+i+'][0],';
+		  	}
+		  	a = a + '];\n';
+
+        a = a + 'var z_translation = [';
+		  	for (var i=0; i<n; i++) {
+		  		a = a + '0,'
+		  	}
+		  	a = a + '];\n';
+
+        a = a + 'var yz_translation = [';
+		  	for (var i=0; i<n; i++) {
+		  		a = a + '0,'
+		  	}
+		  	a = a + '];\n';
+
+		  	a = a + 'for (var k=0; k<'+s+'; k++) {\n';
+		  	for (var i=0; i<n; i++) {
+          a = a + 'z_translation['+i+'] = r['+i+'][2]*points[p_index+2] + translation['+i+'];\n'
+		  	}
+
+		  	a = a + 'for (var j=0; j<'+s+'; j++) {\n';
+		  	for (var i=0; i<n; i++) {
+          a = a + 'yz_translation['+i+'] = r['+i+'][1]*points[p_index+1] + z_translation['+i+'];\n'
+		  	}
+
+        a = a + 'for (var i=0; i<'+s+'; i++, c_index+='+n+', p_index+=3) {\n';
+		  	for (var i=0; i<n; i++) {
+          // a = a + 'coords[c_index]['+i+'] = c1['+i+']*points[p_index  ] + yz_translation['+i+'];\n'
+					a = a + 'coords[c_index+'+i+'] = c1['+i+']*points[p_index  ] + yz_translation['+i+'];\n'
+		  	}
+
+		  	a = a + '} } }';
+		  	return a;
+		  }
+
+		  function default_field() {
+            return new Function('x', 'c', default_field_body());
+		  }
+
+		  function update_field_function(data) {
+        if (typeof data.code == 'string') field = new Function('x', 'c', data.code);
+
+		  }
+
+		  function rebuild_scalar_field(c, num) {
+		  	if (typeof field == 'undefined') {
+          this.field = default_field();
+		  	}
+				field(coords, c);
+		  	/*try {
+		  		if (isNaN( field([0,0,0,0,0], c) )) {
+		  			throw 'NaN Error.';
+		  		}
+		  	} catch (err) {
+		  		if (num == 0) {
+		  			console.log(err);
+            console.log('Code compiled, but returned NaN when evaluated at the origin.\nIs coeff_count too low? Are you accessing c[] out of bounds?');
+		  		}
+		  	}*/
+
+				/*
+		  	// Most JS compilers don't optimize functions with try catch blocks, so we bypass that issue by making a new function.
+        var apply_field = function() {
+		  		for (var i = 0; i < size3; i++) {
+		  			values[i] = field(coords[i], c);
+		  		}
+		  	};
+        apply_field();
+				*/
+		  }
+
+		  function is_number(n) {
+		    return !isNaN(parseFloat(n)) && isFinite(n);
+		  }
+
+		  function rebuild_coords_indirectly(r) {
+        rebuild_coords(r); // This makes it show up nicer in the profiler.
+		  }
+
+		  onmessage = function(e) {
+	    	console.time('Worker ' + e.data.num + ' Task');
+            var previous_field = typeof field == 'undefined' ? null : field;
+            // Establish ownership even if user code throws before geometry work.
+            this.vertex_buffer = e.data.vertex_buffer;
+            this.face_buffer = e.data.face_buffer;
+            this.normal_buffer = e.data.normal_buffer;
+            try {
+        switch (e.data.message_type) {
+	    		case 'echo':
+	    			self.postMessage( e.data.num );
+	    		break;
+	    		case  'init':
+	    			setup(e.data.params.dimensions, e.data.params.resolution, e.data.num);
+            this.rebuild_coords = new Function('r', update_coords_function(e.data.n, e.data.params.resolution));
+	    		case 'coords':
+            rebuild_coords_indirectly(e.data.r); // rebuild_coords() is an anonymous function and makes profiling weird.
+	    		case 'code':
+            update_field_function(e.data);
+          case 'scalar_field':
+            rebuild_scalar_field(e.data.params.coeff, e.data.num);
+	    		case 'geometry':
+                        if (this.field_needs_recovery) rebuild_scalar_field(e.data.params.coeff, e.data.num);
+                        this.field_needs_recovery = false;
+						this.vertex_buffer = e.data.vertex_buffer;
+						this.face_buffer = e.data.face_buffer;
+						this.normal_buffer = e.data.normal_buffer;
+						marching_cubes( points, values, e.data.params.iso, e.data.params.interpolate, e.data.calc_normals, e.data.num, e.data.params.memory_overuse );
+            reply(e.data.num, e.data.batch_id);
+	    		break;
+	    		default:
+	    			console.log('ERROR');
+	    		break;
+	    	}
+            } catch (err) {
+                this.field = previous_field || default_field();
+                this.field_needs_recovery = true;
+                var returned = [vertex_buffer, face_buffer, normal_buffer];
+                self.postMessage({num:e.data.num, batch_id:e.data.batch_id, error:String(err.message || err), buffers:returned}, returned);
+            }
+		  	//console.timeEnd('Worker ' + e.data.num + ' Task');
+		  }
+
+		  function reply(num, batch_id) {
+				var b = [vertex_buffer, face_buffer, normal_buffer];
+//				if (num==0) console.log(vertex_buffer.byteLength);
+        self.postMessage( {num: num, batch_id:batch_id, buffers: b, vertex_count: active_vertex_count, index_count: active_index_count}, b);
+//console.log(typeof buffers[0]);
+//self.postMessage( buffers, buffers );
+		  }
+		</script>
+
+		<script type='text/worker' id='marching_cubes'>
+		  /**
+		   * @author alteredq / http://alteredqualia.com/
+		   *
+		   * Port of greggman's ThreeD version of marching cubes to Three.js
+		   * http://webglsamples.googlecode.com/hg/blob/blob.html
+		   */
+
+		   /*	Marching cube implementation from:
+          Three.js "tutorials by example"
+		   		Author: Lee Stemkoski
+          http://stemkoski.github.io/Three.js/
+          Date: July 2013 (Three.js v59dev)
+		  		Some modifications have been made.
+		   */
+
+			function hamming_weight(i) {
+			  i = i - ((i >> 1) & 0x55555555);
+			  i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+			  return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+			}
+
+		  function marching_cubes( points, values, iso, interpolate, calc_normals, num, memory_overuse) {
+				// First pass calculates the necessary sizes of the buffers
+				// and caches the "bits" variable.
+				var total_vertex_count = 0;
+				var total_face_count = 0;
+				var idx = 0;
+		  	for (var z = 0; z < size - 1; z++) {
+				  for (var y = 0; y < size - 1; y++) {
+						var prev_cube_index = 0;
+				  	for (var x = 0; x < size - 1; x++, idx++) {
+							var cube_index = 0;
+							if (x==0) {
+								var p    = x + size * y + size2 * z;
+								var px   = p   + 1;
+								var py   = p   + size;
+								var pxy  = py  + 1;
+								var pz   = p   + size2;
+								var pxz  = px  + size2;
+								var pyz  = py  + size2;
+								var pxyz = pxy + size2;
+								var value0 = values[ p    ],
+					  			value1 = values[ px   ],
+					  			value2 = values[ py   ],
+					  			value3 = values[ pxy  ],
+					  			value4 = values[ pz   ],
+					  			value5 = values[ pxz  ],
+					  			value6 = values[ pyz  ],
+					  			value7 = values[ pxyz ];
+                if ( iso < value0 ) cube_index |= 1;
+                if ( iso < value1 ) cube_index |= 2;
+                if ( iso < value2 ) cube_index |= 8;
+                if ( iso < value3 ) cube_index |= 4;
+                if ( iso < value4 ) cube_index |= 16;
+                if ( iso < value5 ) cube_index |= 32;
+                if ( iso < value6 ) cube_index |= 128;
+                if ( iso < value7 ) cube_index |= 64;
+								prev_cube_index = cube_index;
+								cube_index_table[idx] = cube_index;
+								var bits = this.edge_table[ cube_index ];
+								//bits_table[bit_index] = bits;
+					  		if ( bits === 0 ) continue;
+								// 2440 = 8+128+256+2048
+								total_vertex_count += hamming_weight( bits & 2440 );
+							}
+							else {
+								' ############################################################################### ';
+								px++;
+								pxy++;
+								pxz++;
+								pxyz++;
+								value1 = values[ px   ];
+								value3 = values[ pxy  ];
+								value5 = values[ pxz  ];
+								value7 = values[ pxyz ];
+								cube_index |= (prev_cube_index & 34) >> 1; // shh bby
+								cube_index |= (prev_cube_index & 68) << 1; // is ok
+								if ( iso < value1 ) cube_index |=  2;
+								if ( iso < value3 ) cube_index |=  4;
+								if ( iso < value5 ) cube_index |= 32;
+								if ( iso < value7 ) cube_index |= 64;
+								prev_cube_index = cube_index; // For next iteration
+								cube_index_table[idx] = cube_index;
+								var bits = this.edge_table[ cube_index ];
+			  				if (bits ===  0) continue;
+							}
+							// 1655 = 1+2+4+16+32+64+512+1024
+							total_vertex_count += hamming_weight(bits & 1655);
+							total_face_count += this.face_count[cube_index];
+						}
+					}
+				}
+//				if (num==0) console.log(coords);
+				memory_overuse += 1;
+				if (vertex_buffer.byteLength < total_vertex_count * 3 * 4) {
+					this.vertex_buffer = new ArrayBuffer(4 * Math.floor(total_vertex_count * 3 * memory_overuse));
+				}
+				var vertex_array = new Float32Array(vertex_buffer);
+
+				if (face_buffer.byteLength < total_face_count * 3 * 4) {
+					this.face_buffer = new ArrayBuffer(4 * Math.floor(total_face_count * 3 * memory_overuse));
+					var face_array = new Uint32Array(face_buffer);
+				} else {
+					face_array = new Uint32Array(face_buffer);
+					for (var i=total_face_count; i<face_array.length; i++) {
+						face_array[i] = 0;
+					}
+				}
+
+				if (normal_buffer.byteLength < total_vertex_count * 3 * 4) {
+					this.normal_buffer = new ArrayBuffer(4 * Math.floor(total_vertex_count * 3 * memory_overuse));
+				}
+				var normal_array = new Float32Array(normal_buffer);
+
+				// var color_buffer = new Float32Array(total_vertex_count * 3);
+
+' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ';
+' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ';
+' %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ';
+
+				var vertex_index = new Array(12);
+				var vertex_count = 0;
+				for (var i=0;i<12;i++) vertex_index[i] = vertex_count;
+//				var buff_geom = new THREE.BufferGeometry();
+
+				var idx = 0;
+				var face_offset = 0;
+		  	for (var z = 0; z < size - 1; z++) {
+				  for (var y = 0; y < size - 1; y++) {
+						var prev_cube_index = 0;
+				  	for (var x = 0; x < size - 1; x++, idx++) {
+							var mu = 0.5;
+							var cube_index = 0;
+							if (x==0) {
+								var p    = x + size * y + size2 * z;
+								var px   = p   + 1;
+								var py   = p   + size;
+								var pxy  = py  + 1;
+								var pz   = p   + size2;
+								var pxz  = px  + size2;
+								var pyz  = py  + size2;
+								var pxyz = pxy + size2;
+								var value0 = values[ p    ],
+					  			value1 = values[ px   ],
+					  			value2 = values[ py   ],
+					  			value3 = values[ pxy  ],
+					  			value4 = values[ pz   ],
+					  			value5 = values[ pxz  ],
+					  			value6 = values[ pyz  ],
+					  			value7 = values[ pxyz ];
+								cube_index = cube_index_table[idx];
+								prev_cube_index = cube_index;
+								var bits = this.edge_table[ cube_index ];
+					  		if ( bits === 0 ) continue;
+								if ( bits & 8 )	{ // 3 -- p py
+					  			mu = ( iso - value0 ) / ( value2 - value0 );
+									var offset = 3*vertex_count;
+									vertex_array[offset  ] = points[3*p  ] + (points[3*py  ] - points[3*p  ])*mu;
+									vertex_array[offset+1] = points[3*p+1] + (points[3*py+1] - points[3*p+1])*mu;
+									vertex_array[offset+2] = points[3*p+2] + (points[3*py+2] - points[3*p+2])*mu;
+									vertex_index[3] = vertex_count++;
+					  		}
+								if ( bits & 128 ) { // 7 -- pz pyz
+									mu = ( iso - value4 ) / ( value6 - value4 );
+									var offset = 3*vertex_count;
+									vertex_array[offset  ] = points[3*pz  ] + (points[3*pyz  ] - points[3*pz  ])*mu;
+									vertex_array[offset+1] = points[3*pz+1] + (points[3*pyz+1] - points[3*pz+1])*mu;
+									vertex_array[offset+2] = points[3*pz+2] + (points[3*pyz+2] - points[3*pz+2])*mu;
+									vertex_index[7] = vertex_count++;
+								}
+								if ( bits & 256 ) { // 8 -- p pz
+					  			mu = ( iso - value0 ) / ( value4 - value0 );
+									var offset = 3*vertex_count;
+									vertex_array[offset  ] = points[3*p  ] + (points[3*pz  ] - points[3*p  ])*mu;
+									vertex_array[offset+1] = points[3*p+1] + (points[3*pz+1] - points[3*p+1])*mu;
+									vertex_array[offset+2] = points[3*p+2] + (points[3*pz+2] - points[3*p+2])*mu;
+									vertex_index[8] = vertex_count++;
+					  		}
+								if ( bits & 2048 ) { // 11 -- py pyz
+					  			mu = ( iso - value2 ) / ( value6 - value2 );
+									var offset = 3*vertex_count;
+									vertex_array[offset  ] = points[3*py  ] + (points[3*pyz  ] - points[3*py  ])*mu;
+									vertex_array[offset+1] = points[3*py+1] + (points[3*pyz+1] - points[3*py+1])*mu;
+									vertex_array[offset+2] = points[3*py+2] + (points[3*pyz+2] - points[3*py+2])*mu;
+									vertex_index[11] = vertex_count++;
+					  		}
+							}
+							else {
+								' ############################################################################### ';
+								p = px;
+								py = pxy;
+								pz = pxz;
+								pyz = pxyz;
+								px++;
+								pxy++;
+								pxz++;
+								pxyz++;
+								value0 = value1;
+								value2 = value3;
+								value4 = value5;
+								value6 = value7;
+								value1 = values[ px   ];
+								value3 = values[ pxy  ];
+								value5 = values[ pxz  ];
+								value7 = values[ pxyz ];
+								cube_index = cube_index_table[idx];
+								prev_cube_index = cube_index;
+								var bits = this.edge_table[ cube_index ];
+			  				if (bits ===  0) continue;
+								if (bits &    8) {
+									vertex_index[3] = vertex_index[1];
+								}
+								if (bits &  128) {
+									vertex_index[7] = vertex_index[5];
+								}
+								if (bits &  256) {
+									vertex_index[8] = vertex_index[9];
+								}
+								if (bits & 2048) {
+									vertex_index[11] = vertex_index[10];
+								}
+							}
+' #######################################################################################'
+
+							// Done with special cases
+							if ( bits & 1 )	{
+								mu = ( iso - value0 ) / ( value1 - value0 );
+								var offset = 3*vertex_count;
+								vertex_array[offset  ] = points[3*p  ] + (points[3*px  ] - points[3*p  ])*mu;
+								vertex_array[offset+1] = points[3*p+1] + (points[3*px+1] - points[3*p+1])*mu;
+								vertex_array[offset+2] = points[3*p+2] + (points[3*px+2] - points[3*p+2])*mu;
+								vertex_index[0] = vertex_count++;
+							}
+							// bottom of the cube (z up)
+							if ( bits & 2 )	{
+								mu = ( iso - value1 ) / ( value3 - value1 );
+								var offset = 3*vertex_count;
+								vertex_array[offset  ] = points[3*px  ] + (points[3*pxy  ] - points[3*px  ])*mu;
+								vertex_array[offset+1] = points[3*px+1] + (points[3*pxy+1] - points[3*px+1])*mu;
+								vertex_array[offset+2] = points[3*px+2] + (points[3*pxy+2] - points[3*px+2])*mu;
+								vertex_index[1] = vertex_count++;
+							}
+							if ( bits & 4 )	{
+								mu = ( iso - value2 ) / ( value3 - value2 );
+								var offset = 3*vertex_count;
+								vertex_array[offset  ] = points[3*py  ] + (points[3*pxy  ] - points[3*py  ])*mu;
+								vertex_array[offset+1] = points[3*py+1] + (points[3*pxy+1] - points[3*py+1])*mu;
+								vertex_array[offset+2] = points[3*py+2] + (points[3*pxy+2] - points[3*py+2])*mu;
+								vertex_index[2] = vertex_count++;
+							}
+							// top of the cube (z up)
+							if ( bits & 16 ) {
+								mu = ( iso - value4 ) / ( value5 - value4 );
+								var offset = 3*vertex_count;
+								vertex_array[offset  ] = points[3*pz  ] + (points[3*pxz  ] - points[3*pz  ])*mu;
+								vertex_array[offset+1] = points[3*pz+1] + (points[3*pxz+1] - points[3*pz+1])*mu;
+								vertex_array[offset+2] = points[3*pz+2] + (points[3*pxz+2] - points[3*pz+2])*mu;
+								vertex_index[4] = vertex_count++;
+							}
+							if ( bits & 32 ) {
+								mu = ( iso - value5 ) / ( value7 - value5 );
+								var offset = 3*vertex_count;
+								vertex_array[offset  ] = points[3*pxz  ] + (points[3*pxyz  ] - points[3*pxz  ])*mu;
+								vertex_array[offset+1] = points[3*pxz+1] + (points[3*pxyz+1] - points[3*pxz+1])*mu;
+								vertex_array[offset+2] = points[3*pxz+2] + (points[3*pxyz+2] - points[3*pxz+2])*mu;
+								vertex_index[5] = vertex_count++;
+							}
+							if ( bits & 64 ) {
+								mu = ( iso - value6 ) / ( value7 - value6 );
+								var offset = 3*vertex_count;
+								vertex_array[offset  ] = points[3*pyz  ] + (points[3*pxyz  ] - points[3*pyz  ])*mu;
+								vertex_array[offset+1] = points[3*pyz+1] + (points[3*pxyz+1] - points[3*pyz+1])*mu;
+								vertex_array[offset+2] = points[3*pyz+2] + (points[3*pxyz+2] - points[3*pyz+2])*mu;
+								vertex_index[6] = vertex_count++;
+							}
+							// vertical lines of the cube
+							if ( bits & 512 ) {
+								mu = ( iso - value1 ) / ( value5 - value1 );
+								var offset = 3*vertex_count;
+								vertex_array[offset  ] = points[3*px  ] + (points[3*pxz  ] - points[3*px  ])*mu;
+								vertex_array[offset+1] = points[3*px+1] + (points[3*pxz+1] - points[3*px+1])*mu;
+								vertex_array[offset+2] = points[3*px+2] + (points[3*pxz+2] - points[3*px+2])*mu;
+								vertex_index[9] = vertex_count++;
+							}
+							if ( bits & 1024 ) {
+								mu = ( iso - value3 ) / ( value7 - value3 );
+								var offset = 3*vertex_count;
+								vertex_array[offset  ] = points[3*pxy  ] + (points[3*pxyz  ] - points[3*pxy  ])*mu;
+								vertex_array[offset+1] = points[3*pxy+1] + (points[3*pxyz+1] - points[3*pxy+1])*mu;
+								vertex_array[offset+2] = points[3*pxy+2] + (points[3*pxyz+2] - points[3*pxy+2])*mu;
+								vertex_index[10] = vertex_count++;
+							}
+
+							// construct triangles -- get correct vertices from tri_table.
+							cube_index <<= 4;  // multiply by 16...
+							while ( this.tri_table[ cube_index ] != -1 ) {
+								face_array[face_offset  ] = vertex_index[this.tri_table[cube_index  ]];
+								face_array[face_offset+1] = vertex_index[this.tri_table[cube_index+1]];
+								face_array[face_offset+2] = vertex_index[this.tri_table[cube_index+2]];
+								cube_index += 3;
+								face_offset += 3;
+							}
+						}
+					}
+				}
+
+				this.active_vertex_count = vertex_count;
+				this.active_index_count = face_offset;
+				// Area-weighted mesh normals, outside the tuned cube traversal.
+				// Disabled means zero normals, never position vectors.
+				for (var i=0; i<total_vertex_count*3; i++) normal_array[i] = 0;
+				if (calc_normals) {
+					for (var i=0; i<face_offset; i+=3) {
+						var a=face_array[i]*3, b=face_array[i+1]*3, c=face_array[i+2]*3;
+						var ux=vertex_array[b]-vertex_array[a], uy=vertex_array[b+1]-vertex_array[a+1], uz=vertex_array[b+2]-vertex_array[a+2];
+						var vx=vertex_array[c]-vertex_array[a], vy=vertex_array[c+1]-vertex_array[a+1], vz=vertex_array[c+2]-vertex_array[a+2];
+						var nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+						for (var j=0; j<3; j++) {
+							var index=face_array[i+j]*3;
+							normal_array[index]+=nx; normal_array[index+1]+=ny; normal_array[index+2]+=nz;
+						}
+					}
+					for (var i=0; i<total_vertex_count*3; i+=3) {
+						var length=Math.sqrt(normal_array[i]*normal_array[i]+normal_array[i+1]*normal_array[i+1]+normal_array[i+2]*normal_array[i+2]);
+						if (length>0) { normal_array[i]/=length; normal_array[i+1]/=length; normal_array[i+2]/=length; }
+					}
+				}
+
+
+
+				// buff_geom.addAttribute( 'position', new THREE.BufferAttribute( vertex_array, 3 ) );
+				// buff_geom.setIndex(  new THREE.BufferAttribute(face_array,3));
+				if (num==0) {
+//					console.log(vertex_index);
+//					console.log(vertex_array);
+//					console.log(face_array);
+//					console.log('v' + vertex_count.toString());
+				}
+				if (calc_normals) {
+//					buff_geom.computeFaceNormals();
+//					buff_geom.computeVertexNormals();
+				}
+
+//				return [vertex_array.buffer, face_array.buffer, normal_array.buffer];
+			}
+
+			/////////////////////////////////////
+		  // Marching cubes lookup tables
+		  /////////////////////////////////////
+
+		  // These tables are straight from Paul Bourke's page:
+		  // http://local.wasp.uwa.edu.au/~pbourke/geometry/polygonise/
+		  // who in turn got them from Cory Gene Bloyd.
+		{
+		  this.edge_table = new Int32Array([
+		  0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
+		  0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
+		  0x190, 0x99 , 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c,
+		  0x99c, 0x895, 0xb9f, 0xa96, 0xd9a, 0xc93, 0xf99, 0xe90,
+		  0x230, 0x339, 0x33 , 0x13a, 0x636, 0x73f, 0x435, 0x53c,
+		  0xa3c, 0xb35, 0x83f, 0x936, 0xe3a, 0xf33, 0xc39, 0xd30,
+		  0x3a0, 0x2a9, 0x1a3, 0xaa , 0x7a6, 0x6af, 0x5a5, 0x4ac,
+		  0xbac, 0xaa5, 0x9af, 0x8a6, 0xfaa, 0xea3, 0xda9, 0xca0,
+		  0x460, 0x569, 0x663, 0x76a, 0x66 , 0x16f, 0x265, 0x36c,
+		  0xc6c, 0xd65, 0xe6f, 0xf66, 0x86a, 0x963, 0xa69, 0xb60,
+		  0x5f0, 0x4f9, 0x7f3, 0x6fa, 0x1f6, 0xff , 0x3f5, 0x2fc,
+		  0xdfc, 0xcf5, 0xfff, 0xef6, 0x9fa, 0x8f3, 0xbf9, 0xaf0,
+		  0x650, 0x759, 0x453, 0x55a, 0x256, 0x35f, 0x55 , 0x15c,
+		  0xe5c, 0xf55, 0xc5f, 0xd56, 0xa5a, 0xb53, 0x859, 0x950,
+		  0x7c0, 0x6c9, 0x5c3, 0x4ca, 0x3c6, 0x2cf, 0x1c5, 0xcc ,
+		  0xfcc, 0xec5, 0xdcf, 0xcc6, 0xbca, 0xac3, 0x9c9, 0x8c0,
+		  0x8c0, 0x9c9, 0xac3, 0xbca, 0xcc6, 0xdcf, 0xec5, 0xfcc,
+		  0xcc , 0x1c5, 0x2cf, 0x3c6, 0x4ca, 0x5c3, 0x6c9, 0x7c0,
+		  0x950, 0x859, 0xb53, 0xa5a, 0xd56, 0xc5f, 0xf55, 0xe5c,
+		  0x15c, 0x55 , 0x35f, 0x256, 0x55a, 0x453, 0x759, 0x650,
+		  0xaf0, 0xbf9, 0x8f3, 0x9fa, 0xef6, 0xfff, 0xcf5, 0xdfc,
+		  0x2fc, 0x3f5, 0xff , 0x1f6, 0x6fa, 0x7f3, 0x4f9, 0x5f0,
+		  0xb60, 0xa69, 0x963, 0x86a, 0xf66, 0xe6f, 0xd65, 0xc6c,
+		  0x36c, 0x265, 0x16f, 0x66 , 0x76a, 0x663, 0x569, 0x460,
+		  0xca0, 0xda9, 0xea3, 0xfaa, 0x8a6, 0x9af, 0xaa5, 0xbac,
+		  0x4ac, 0x5a5, 0x6af, 0x7a6, 0xaa , 0x1a3, 0x2a9, 0x3a0,
+		  0xd30, 0xc39, 0xf33, 0xe3a, 0x936, 0x83f, 0xb35, 0xa3c,
+		  0x53c, 0x435, 0x73f, 0x636, 0x13a, 0x33 , 0x339, 0x230,
+		  0xe90, 0xf99, 0xc93, 0xd9a, 0xa96, 0xb9f, 0x895, 0x99c,
+		  0x69c, 0x795, 0x49f, 0x596, 0x29a, 0x393, 0x99 , 0x190,
+		  0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c,
+		  0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0])
+
+		  this.tri_table = new Int32Array([
+		  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 8, 3, 9, 8, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 8, 3, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  9, 2, 10, 0, 2, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  2, 8, 3, 2, 10, 8, 10, 9, 8, -1, -1, -1, -1, -1, -1, -1,
+		  3, 11, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 11, 2, 8, 11, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 9, 0, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 11, 2, 1, 9, 11, 9, 8, 11, -1, -1, -1, -1, -1, -1, -1,
+		  3, 10, 1, 11, 10, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 10, 1, 0, 8, 10, 8, 11, 10, -1, -1, -1, -1, -1, -1, -1,
+		  3, 9, 0, 3, 11, 9, 11, 10, 9, -1, -1, -1, -1, -1, -1, -1,
+		  9, 8, 10, 10, 8, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  4, 3, 0, 7, 3, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 1, 9, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  4, 1, 9, 4, 7, 1, 7, 3, 1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 2, 10, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  3, 4, 7, 3, 0, 4, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1,
+		  9, 2, 10, 9, 0, 2, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1,
+		  2, 10, 9, 2, 9, 7, 2, 7, 3, 7, 9, 4, -1, -1, -1, -1,
+		  8, 4, 7, 3, 11, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  11, 4, 7, 11, 2, 4, 2, 0, 4, -1, -1, -1, -1, -1, -1, -1,
+		  9, 0, 1, 8, 4, 7, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1,
+		  4, 7, 11, 9, 4, 11, 9, 11, 2, 9, 2, 1, -1, -1, -1, -1,
+		  3, 10, 1, 3, 11, 10, 7, 8, 4, -1, -1, -1, -1, -1, -1, -1,
+		  1, 11, 10, 1, 4, 11, 1, 0, 4, 7, 11, 4, -1, -1, -1, -1,
+		  4, 7, 8, 9, 0, 11, 9, 11, 10, 11, 0, 3, -1, -1, -1, -1,
+		  4, 7, 11, 4, 11, 9, 9, 11, 10, -1, -1, -1, -1, -1, -1, -1,
+		  9, 5, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  9, 5, 4, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 5, 4, 1, 5, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  8, 5, 4, 8, 3, 5, 3, 1, 5, -1, -1, -1, -1, -1, -1, -1,
+		  1, 2, 10, 9, 5, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  3, 0, 8, 1, 2, 10, 4, 9, 5, -1, -1, -1, -1, -1, -1, -1,
+		  5, 2, 10, 5, 4, 2, 4, 0, 2, -1, -1, -1, -1, -1, -1, -1,
+		  2, 10, 5, 3, 2, 5, 3, 5, 4, 3, 4, 8, -1, -1, -1, -1,
+		  9, 5, 4, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 11, 2, 0, 8, 11, 4, 9, 5, -1, -1, -1, -1, -1, -1, -1,
+		  0, 5, 4, 0, 1, 5, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1,
+		  2, 1, 5, 2, 5, 8, 2, 8, 11, 4, 8, 5, -1, -1, -1, -1,
+		  10, 3, 11, 10, 1, 3, 9, 5, 4, -1, -1, -1, -1, -1, -1, -1,
+		  4, 9, 5, 0, 8, 1, 8, 10, 1, 8, 11, 10, -1, -1, -1, -1,
+		  5, 4, 0, 5, 0, 11, 5, 11, 10, 11, 0, 3, -1, -1, -1, -1,
+		  5, 4, 8, 5, 8, 10, 10, 8, 11, -1, -1, -1, -1, -1, -1, -1,
+		  9, 7, 8, 5, 7, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  9, 3, 0, 9, 5, 3, 5, 7, 3, -1, -1, -1, -1, -1, -1, -1,
+		  0, 7, 8, 0, 1, 7, 1, 5, 7, -1, -1, -1, -1, -1, -1, -1,
+		  1, 5, 3, 3, 5, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  9, 7, 8, 9, 5, 7, 10, 1, 2, -1, -1, -1, -1, -1, -1, -1,
+		  10, 1, 2, 9, 5, 0, 5, 3, 0, 5, 7, 3, -1, -1, -1, -1,
+		  8, 0, 2, 8, 2, 5, 8, 5, 7, 10, 5, 2, -1, -1, -1, -1,
+		  2, 10, 5, 2, 5, 3, 3, 5, 7, -1, -1, -1, -1, -1, -1, -1,
+		  7, 9, 5, 7, 8, 9, 3, 11, 2, -1, -1, -1, -1, -1, -1, -1,
+		  9, 5, 7, 9, 7, 2, 9, 2, 0, 2, 7, 11, -1, -1, -1, -1,
+		  2, 3, 11, 0, 1, 8, 1, 7, 8, 1, 5, 7, -1, -1, -1, -1,
+		  11, 2, 1, 11, 1, 7, 7, 1, 5, -1, -1, -1, -1, -1, -1, -1,
+		  9, 5, 8, 8, 5, 7, 10, 1, 3, 10, 3, 11, -1, -1, -1, -1,
+		  5, 7, 0, 5, 0, 9, 7, 11, 0, 1, 0, 10, 11, 10, 0, -1,
+		  11, 10, 0, 11, 0, 3, 10, 5, 0, 8, 0, 7, 5, 7, 0, -1,
+		  11, 10, 5, 7, 11, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  10, 6, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 8, 3, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  9, 0, 1, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 8, 3, 1, 9, 8, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1,
+		  1, 6, 5, 2, 6, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 6, 5, 1, 2, 6, 3, 0, 8, -1, -1, -1, -1, -1, -1, -1,
+		  9, 6, 5, 9, 0, 6, 0, 2, 6, -1, -1, -1, -1, -1, -1, -1,
+		  5, 9, 8, 5, 8, 2, 5, 2, 6, 3, 2, 8, -1, -1, -1, -1,
+		  2, 3, 11, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  11, 0, 8, 11, 2, 0, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1,
+		  0, 1, 9, 2, 3, 11, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1,
+		  5, 10, 6, 1, 9, 2, 9, 11, 2, 9, 8, 11, -1, -1, -1, -1,
+		  6, 3, 11, 6, 5, 3, 5, 1, 3, -1, -1, -1, -1, -1, -1, -1,
+		  0, 8, 11, 0, 11, 5, 0, 5, 1, 5, 11, 6, -1, -1, -1, -1,
+		  3, 11, 6, 0, 3, 6, 0, 6, 5, 0, 5, 9, -1, -1, -1, -1,
+		  6, 5, 9, 6, 9, 11, 11, 9, 8, -1, -1, -1, -1, -1, -1, -1,
+		  5, 10, 6, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  4, 3, 0, 4, 7, 3, 6, 5, 10, -1, -1, -1, -1, -1, -1, -1,
+		  1, 9, 0, 5, 10, 6, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1,
+		  10, 6, 5, 1, 9, 7, 1, 7, 3, 7, 9, 4, -1, -1, -1, -1,
+		  6, 1, 2, 6, 5, 1, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1,
+		  1, 2, 5, 5, 2, 6, 3, 0, 4, 3, 4, 7, -1, -1, -1, -1,
+		  8, 4, 7, 9, 0, 5, 0, 6, 5, 0, 2, 6, -1, -1, -1, -1,
+		  7, 3, 9, 7, 9, 4, 3, 2, 9, 5, 9, 6, 2, 6, 9, -1,
+		  3, 11, 2, 7, 8, 4, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1,
+		  5, 10, 6, 4, 7, 2, 4, 2, 0, 2, 7, 11, -1, -1, -1, -1,
+		  0, 1, 9, 4, 7, 8, 2, 3, 11, 5, 10, 6, -1, -1, -1, -1,
+		  9, 2, 1, 9, 11, 2, 9, 4, 11, 7, 11, 4, 5, 10, 6, -1,
+		  8, 4, 7, 3, 11, 5, 3, 5, 1, 5, 11, 6, -1, -1, -1, -1,
+		  5, 1, 11, 5, 11, 6, 1, 0, 11, 7, 11, 4, 0, 4, 11, -1,
+		  0, 5, 9, 0, 6, 5, 0, 3, 6, 11, 6, 3, 8, 4, 7, -1,
+		  6, 5, 9, 6, 9, 11, 4, 7, 9, 7, 11, 9, -1, -1, -1, -1,
+		  10, 4, 9, 6, 4, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  4, 10, 6, 4, 9, 10, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1,
+		  10, 0, 1, 10, 6, 0, 6, 4, 0, -1, -1, -1, -1, -1, -1, -1,
+		  8, 3, 1, 8, 1, 6, 8, 6, 4, 6, 1, 10, -1, -1, -1, -1,
+		  1, 4, 9, 1, 2, 4, 2, 6, 4, -1, -1, -1, -1, -1, -1, -1,
+		  3, 0, 8, 1, 2, 9, 2, 4, 9, 2, 6, 4, -1, -1, -1, -1,
+		  0, 2, 4, 4, 2, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  8, 3, 2, 8, 2, 4, 4, 2, 6, -1, -1, -1, -1, -1, -1, -1,
+		  10, 4, 9, 10, 6, 4, 11, 2, 3, -1, -1, -1, -1, -1, -1, -1,
+		  0, 8, 2, 2, 8, 11, 4, 9, 10, 4, 10, 6, -1, -1, -1, -1,
+		  3, 11, 2, 0, 1, 6, 0, 6, 4, 6, 1, 10, -1, -1, -1, -1,
+		  6, 4, 1, 6, 1, 10, 4, 8, 1, 2, 1, 11, 8, 11, 1, -1,
+		  9, 6, 4, 9, 3, 6, 9, 1, 3, 11, 6, 3, -1, -1, -1, -1,
+		  8, 11, 1, 8, 1, 0, 11, 6, 1, 9, 1, 4, 6, 4, 1, -1,
+		  3, 11, 6, 3, 6, 0, 0, 6, 4, -1, -1, -1, -1, -1, -1, -1,
+		  6, 4, 8, 11, 6, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  7, 10, 6, 7, 8, 10, 8, 9, 10, -1, -1, -1, -1, -1, -1, -1,
+		  0, 7, 3, 0, 10, 7, 0, 9, 10, 6, 7, 10, -1, -1, -1, -1,
+		  10, 6, 7, 1, 10, 7, 1, 7, 8, 1, 8, 0, -1, -1, -1, -1,
+		  10, 6, 7, 10, 7, 1, 1, 7, 3, -1, -1, -1, -1, -1, -1, -1,
+		  1, 2, 6, 1, 6, 8, 1, 8, 9, 8, 6, 7, -1, -1, -1, -1,
+		  2, 6, 9, 2, 9, 1, 6, 7, 9, 0, 9, 3, 7, 3, 9, -1,
+		  7, 8, 0, 7, 0, 6, 6, 0, 2, -1, -1, -1, -1, -1, -1, -1,
+		  7, 3, 2, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  2, 3, 11, 10, 6, 8, 10, 8, 9, 8, 6, 7, -1, -1, -1, -1,
+		  2, 0, 7, 2, 7, 11, 0, 9, 7, 6, 7, 10, 9, 10, 7, -1,
+		  1, 8, 0, 1, 7, 8, 1, 10, 7, 6, 7, 10, 2, 3, 11, -1,
+		  11, 2, 1, 11, 1, 7, 10, 6, 1, 6, 7, 1, -1, -1, -1, -1,
+		  8, 9, 6, 8, 6, 7, 9, 1, 6, 11, 6, 3, 1, 3, 6, -1,
+		  0, 9, 1, 11, 6, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  7, 8, 0, 7, 0, 6, 3, 11, 0, 11, 6, 0, -1, -1, -1, -1,
+		  7, 11, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  7, 6, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  3, 0, 8, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 1, 9, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  8, 1, 9, 8, 3, 1, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1,
+		  10, 1, 2, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 2, 10, 3, 0, 8, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1,
+		  2, 9, 0, 2, 10, 9, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1,
+		  6, 11, 7, 2, 10, 3, 10, 8, 3, 10, 9, 8, -1, -1, -1, -1,
+		  7, 2, 3, 6, 2, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  7, 0, 8, 7, 6, 0, 6, 2, 0, -1, -1, -1, -1, -1, -1, -1,
+		  2, 7, 6, 2, 3, 7, 0, 1, 9, -1, -1, -1, -1, -1, -1, -1,
+		  1, 6, 2, 1, 8, 6, 1, 9, 8, 8, 7, 6, -1, -1, -1, -1,
+		  10, 7, 6, 10, 1, 7, 1, 3, 7, -1, -1, -1, -1, -1, -1, -1,
+		  10, 7, 6, 1, 7, 10, 1, 8, 7, 1, 0, 8, -1, -1, -1, -1,
+		  0, 3, 7, 0, 7, 10, 0, 10, 9, 6, 10, 7, -1, -1, -1, -1,
+		  7, 6, 10, 7, 10, 8, 8, 10, 9, -1, -1, -1, -1, -1, -1, -1,
+		  6, 8, 4, 11, 8, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  3, 6, 11, 3, 0, 6, 0, 4, 6, -1, -1, -1, -1, -1, -1, -1,
+		  8, 6, 11, 8, 4, 6, 9, 0, 1, -1, -1, -1, -1, -1, -1, -1,
+		  9, 4, 6, 9, 6, 3, 9, 3, 1, 11, 3, 6, -1, -1, -1, -1,
+		  6, 8, 4, 6, 11, 8, 2, 10, 1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 2, 10, 3, 0, 11, 0, 6, 11, 0, 4, 6, -1, -1, -1, -1,
+		  4, 11, 8, 4, 6, 11, 0, 2, 9, 2, 10, 9, -1, -1, -1, -1,
+		  10, 9, 3, 10, 3, 2, 9, 4, 3, 11, 3, 6, 4, 6, 3, -1,
+		  8, 2, 3, 8, 4, 2, 4, 6, 2, -1, -1, -1, -1, -1, -1, -1,
+		  0, 4, 2, 4, 6, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 9, 0, 2, 3, 4, 2, 4, 6, 4, 3, 8, -1, -1, -1, -1,
+		  1, 9, 4, 1, 4, 2, 2, 4, 6, -1, -1, -1, -1, -1, -1, -1,
+		  8, 1, 3, 8, 6, 1, 8, 4, 6, 6, 10, 1, -1, -1, -1, -1,
+		  10, 1, 0, 10, 0, 6, 6, 0, 4, -1, -1, -1, -1, -1, -1, -1,
+		  4, 6, 3, 4, 3, 8, 6, 10, 3, 0, 3, 9, 10, 9, 3, -1,
+		  10, 9, 4, 6, 10, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  4, 9, 5, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 8, 3, 4, 9, 5, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1,
+		  5, 0, 1, 5, 4, 0, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1,
+		  11, 7, 6, 8, 3, 4, 3, 5, 4, 3, 1, 5, -1, -1, -1, -1,
+		  9, 5, 4, 10, 1, 2, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1,
+		  6, 11, 7, 1, 2, 10, 0, 8, 3, 4, 9, 5, -1, -1, -1, -1,
+		  7, 6, 11, 5, 4, 10, 4, 2, 10, 4, 0, 2, -1, -1, -1, -1,
+		  3, 4, 8, 3, 5, 4, 3, 2, 5, 10, 5, 2, 11, 7, 6, -1,
+		  7, 2, 3, 7, 6, 2, 5, 4, 9, -1, -1, -1, -1, -1, -1, -1,
+		  9, 5, 4, 0, 8, 6, 0, 6, 2, 6, 8, 7, -1, -1, -1, -1,
+		  3, 6, 2, 3, 7, 6, 1, 5, 0, 5, 4, 0, -1, -1, -1, -1,
+		  6, 2, 8, 6, 8, 7, 2, 1, 8, 4, 8, 5, 1, 5, 8, -1,
+		  9, 5, 4, 10, 1, 6, 1, 7, 6, 1, 3, 7, -1, -1, -1, -1,
+		  1, 6, 10, 1, 7, 6, 1, 0, 7, 8, 7, 0, 9, 5, 4, -1,
+		  4, 0, 10, 4, 10, 5, 0, 3, 10, 6, 10, 7, 3, 7, 10, -1,
+		  7, 6, 10, 7, 10, 8, 5, 4, 10, 4, 8, 10, -1, -1, -1, -1,
+		  6, 9, 5, 6, 11, 9, 11, 8, 9, -1, -1, -1, -1, -1, -1, -1,
+		  3, 6, 11, 0, 6, 3, 0, 5, 6, 0, 9, 5, -1, -1, -1, -1,
+		  0, 11, 8, 0, 5, 11, 0, 1, 5, 5, 6, 11, -1, -1, -1, -1,
+		  6, 11, 3, 6, 3, 5, 5, 3, 1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 2, 10, 9, 5, 11, 9, 11, 8, 11, 5, 6, -1, -1, -1, -1,
+		  0, 11, 3, 0, 6, 11, 0, 9, 6, 5, 6, 9, 1, 2, 10, -1,
+		  11, 8, 5, 11, 5, 6, 8, 0, 5, 10, 5, 2, 0, 2, 5, -1,
+		  6, 11, 3, 6, 3, 5, 2, 10, 3, 10, 5, 3, -1, -1, -1, -1,
+		  5, 8, 9, 5, 2, 8, 5, 6, 2, 3, 8, 2, -1, -1, -1, -1,
+		  9, 5, 6, 9, 6, 0, 0, 6, 2, -1, -1, -1, -1, -1, -1, -1,
+		  1, 5, 8, 1, 8, 0, 5, 6, 8, 3, 8, 2, 6, 2, 8, -1,
+		  1, 5, 6, 2, 1, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 3, 6, 1, 6, 10, 3, 8, 6, 5, 6, 9, 8, 9, 6, -1,
+		  10, 1, 0, 10, 0, 6, 9, 5, 0, 5, 6, 0, -1, -1, -1, -1,
+		  0, 3, 8, 5, 6, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  10, 5, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  11, 5, 10, 7, 5, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  11, 5, 10, 11, 7, 5, 8, 3, 0, -1, -1, -1, -1, -1, -1, -1,
+		  5, 11, 7, 5, 10, 11, 1, 9, 0, -1, -1, -1, -1, -1, -1, -1,
+		  10, 7, 5, 10, 11, 7, 9, 8, 1, 8, 3, 1, -1, -1, -1, -1,
+		  11, 1, 2, 11, 7, 1, 7, 5, 1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 8, 3, 1, 2, 7, 1, 7, 5, 7, 2, 11, -1, -1, -1, -1,
+		  9, 7, 5, 9, 2, 7, 9, 0, 2, 2, 11, 7, -1, -1, -1, -1,
+		  7, 5, 2, 7, 2, 11, 5, 9, 2, 3, 2, 8, 9, 8, 2, -1,
+		  2, 5, 10, 2, 3, 5, 3, 7, 5, -1, -1, -1, -1, -1, -1, -1,
+		  8, 2, 0, 8, 5, 2, 8, 7, 5, 10, 2, 5, -1, -1, -1, -1,
+		  9, 0, 1, 5, 10, 3, 5, 3, 7, 3, 10, 2, -1, -1, -1, -1,
+		  9, 8, 2, 9, 2, 1, 8, 7, 2, 10, 2, 5, 7, 5, 2, -1,
+		  1, 3, 5, 3, 7, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 8, 7, 0, 7, 1, 1, 7, 5, -1, -1, -1, -1, -1, -1, -1,
+		  9, 0, 3, 9, 3, 5, 5, 3, 7, -1, -1, -1, -1, -1, -1, -1,
+		  9, 8, 7, 5, 9, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  5, 8, 4, 5, 10, 8, 10, 11, 8, -1, -1, -1, -1, -1, -1, -1,
+		  5, 0, 4, 5, 11, 0, 5, 10, 11, 11, 3, 0, -1, -1, -1, -1,
+		  0, 1, 9, 8, 4, 10, 8, 10, 11, 10, 4, 5, -1, -1, -1, -1,
+		  10, 11, 4, 10, 4, 5, 11, 3, 4, 9, 4, 1, 3, 1, 4, -1,
+		  2, 5, 1, 2, 8, 5, 2, 11, 8, 4, 5, 8, -1, -1, -1, -1,
+		  0, 4, 11, 0, 11, 3, 4, 5, 11, 2, 11, 1, 5, 1, 11, -1,
+		  0, 2, 5, 0, 5, 9, 2, 11, 5, 4, 5, 8, 11, 8, 5, -1,
+		  9, 4, 5, 2, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  2, 5, 10, 3, 5, 2, 3, 4, 5, 3, 8, 4, -1, -1, -1, -1,
+		  5, 10, 2, 5, 2, 4, 4, 2, 0, -1, -1, -1, -1, -1, -1, -1,
+		  3, 10, 2, 3, 5, 10, 3, 8, 5, 4, 5, 8, 0, 1, 9, -1,
+		  5, 10, 2, 5, 2, 4, 1, 9, 2, 9, 4, 2, -1, -1, -1, -1,
+		  8, 4, 5, 8, 5, 3, 3, 5, 1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 4, 5, 1, 0, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  8, 4, 5, 8, 5, 3, 9, 0, 5, 0, 3, 5, -1, -1, -1, -1,
+		  9, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  4, 11, 7, 4, 9, 11, 9, 10, 11, -1, -1, -1, -1, -1, -1, -1,
+		  0, 8, 3, 4, 9, 7, 9, 11, 7, 9, 10, 11, -1, -1, -1, -1,
+		  1, 10, 11, 1, 11, 4, 1, 4, 0, 7, 4, 11, -1, -1, -1, -1,
+		  3, 1, 4, 3, 4, 8, 1, 10, 4, 7, 4, 11, 10, 11, 4, -1,
+		  4, 11, 7, 9, 11, 4, 9, 2, 11, 9, 1, 2, -1, -1, -1, -1,
+		  9, 7, 4, 9, 11, 7, 9, 1, 11, 2, 11, 1, 0, 8, 3, -1,
+		  11, 7, 4, 11, 4, 2, 2, 4, 0, -1, -1, -1, -1, -1, -1, -1,
+		  11, 7, 4, 11, 4, 2, 8, 3, 4, 3, 2, 4, -1, -1, -1, -1,
+		  2, 9, 10, 2, 7, 9, 2, 3, 7, 7, 4, 9, -1, -1, -1, -1,
+		  9, 10, 7, 9, 7, 4, 10, 2, 7, 8, 7, 0, 2, 0, 7, -1,
+		  3, 7, 10, 3, 10, 2, 7, 4, 10, 1, 10, 0, 4, 0, 10, -1,
+		  1, 10, 2, 8, 7, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  4, 9, 1, 4, 1, 7, 7, 1, 3, -1, -1, -1, -1, -1, -1, -1,
+		  4, 9, 1, 4, 1, 7, 0, 8, 1, 8, 7, 1, -1, -1, -1, -1,
+		  4, 0, 3, 7, 4, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  4, 8, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  9, 10, 8, 10, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  3, 0, 9, 3, 9, 11, 11, 9, 10, -1, -1, -1, -1, -1, -1, -1,
+		  0, 1, 10, 0, 10, 8, 8, 10, 11, -1, -1, -1, -1, -1, -1, -1,
+		  3, 1, 10, 11, 3, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 2, 11, 1, 11, 9, 9, 11, 8, -1, -1, -1, -1, -1, -1, -1,
+		  3, 0, 9, 3, 9, 11, 1, 2, 9, 2, 11, 9, -1, -1, -1, -1,
+		  0, 2, 11, 8, 0, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  3, 2, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  2, 3, 8, 2, 8, 10, 10, 8, 9, -1, -1, -1, -1, -1, -1, -1,
+		  9, 10, 2, 0, 9, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  2, 3, 8, 2, 8, 10, 0, 1, 8, 1, 10, 8, -1, -1, -1, -1,
+		  1, 10, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  1, 3, 8, 9, 1, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+		  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]);
+
+			this.face_count = [0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,2,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,2,3,3,2,3,4,4,3,3,4,4,3,4,5,5,2,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,4,2,3,3,4,3,4,2,3,3,4,4,5,4,5,3,2,3,4,4,3,4,5,3,2,4,5,5,4,5,2,4,1,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,3,2,3,3,4,3,4,4,5,3,2,4,3,4,3,5,2,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,4,3,4,4,3,4,5,5,4,4,3,5,2,5,4,2,1,2,3,3,4,3,4,4,5,3,4,4,5,2,3,3,2,3,4,4,5,4,5,5,2,4,3,5,4,3,2,4,1,3,4,4,5,4,5,3,4,4,5,5,2,3,4,2,1,2,3,3,2,3,4,2,1,3,2,4,1,2,1,1,0];
+			this.vertex_count = [0,3,3,4,3,6,4,5,3,4,6,5,4,5,5,4,3,4,6,5,6,7,7,6,6,5,9,6,7,6,8,5,3,6,4,5,6,9,5,6,6,7,7,6,7,8,6,5,4,5,5,4,7,8,6,5,7,6,8,5,8,7,7,4,3,6,6,7,4,7,5,6,6,7,9,8,5,6,6,5,6,7,9,8,7,8,8,7,9,8,12,9,8,7,9,6,4,7,5,6,5,8,4,5,7,8,8,7,6,7,5,4,5,6,6,5,6,7,5,4,8,7,9,6,7,6,6,3,3,6,6,7,6,9,7,8,4,5,7,6,5,6,6,5,4,5,7,6,7,8,8,7,5,4,8,5,6,5,7,4,6,9,7,8,9,12,8,9,7,8,8,7,8,9,7,6,5,6,6,5,8,9,7,6,6,5,7,4,7,6,6,3,4,7,7,8,5,8,6,7,5,6,8,7,4,5,5,4,5,6,8,7,6,7,7,6,6,5,9,6,5,4,6,3,5,8,6,7,6,9,5,6,6,7,7,6,5,6,4,3,4,5,5,4,5,6,4,3,5,4,6,3,4,3,3,0];
+		}
+		</script>
+
+
+		<script>
+			// To do: remove all global variables, at least figure out something better.
+			var container, scene, camera, renderer, controls, stats;
+			var keyboard = new THREEx.KeyboardState();
+			var waiting_for_web_worker = [false,false,false,false,false,false,false,false];
+			var title = "IsoVis";
+			var title_busy = "IsoVis - Busy";
+
+			if (location.protocol === 'file:') show_startup_error('Serve this folder over HTTP. Browser ES modules cannot load reliably from file://. See README.md for a one-command local server.');
+		</script>
+
+		<script type="module" src="js/bootstrap.js"></script>
+
+	</body>
+</html>

@@ -18,13 +18,13 @@ field and a sphere, resolutions 8/16, normals off/on, one warmup and five sample
 JSON records browser/hardware hints, GPU identity when exposed, viewport, workers,
 settings, and min/p50/p95/max distributions. Metrics:
 
-- **roundTripMs**: dispatch through the last worker reply and its UI handling.
+- **round_trip_ms**: dispatch through the last worker reply and its UI handling.
   Includes scheduling, transfer and CPU geometry installation, not pure worker time.
-- **replyHandlingMs**: summed main-thread reply-handler time; not pure transfer time.
-- **twoAnimationFramesMs**: two rAF callbacks after completion, not GPU completion.
-- **frameGapMs**: observed parent-page rAF gaps during measured trials; an approximate
+- **reply_handling_ms**: summed main-thread reply-handler time; not pure transfer time.
+- **two_animation_frames_ms**: two rAF callbacks after completion, not GPU completion.
+- **frame_gap_ms**: observed parent-page rAF gaps during measured trials; an approximate
   responsiveness signal, not a guaranteed complete record of iframe/render stalls.
-- **observedHeapBytes**: optional Chromium `performance.memory` samples every 25ms.
+- **observed_heap_bytes**: optional Chromium `performance.memory` samples every 25ms.
   Coarse and not a guaranteed peak; may include parent/iframe overhead. Unavailable
   APIs produce null, not a fabricated zero. Renderer resource counters are separate.
 

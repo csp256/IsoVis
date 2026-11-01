@@ -1,46 +1,46 @@
 // Shared numeric invariants for controls, saved settings and dispatch.
-function requireResolution(value) {
+function require_resolution(value) {
   if (!Number.isInteger(value) || value < 2 || value > 65) throw new Error('Resolution must be an integer between 2 and 65');
   return value;
 }
-function requireZoom(value) {
+function require_zoom(value) {
   if (!Number.isFinite(value) || value <= 0) throw new Error('Zoom must be finite and greater than zero');
   return value;
 }
-function requireScale(value) {
+function require_scale(value) {
   if (!Number.isFinite(value) || value === 0) throw new Error('Scale factors must be finite and nonzero');
   return value;
 }
-function validateNumericSettings(shape, transform, stack) {
-  requireResolution(shape.resolution);
-  requireZoom(transform.zoom);
-  stack.forEach(function(t) { t.s.forEach(requireScale); });
+function validate_numeric_settings(shape, transform, stack) {
+  require_resolution(shape.resolution);
+  require_zoom(transform.zoom);
+  stack.forEach(function(t) { t.s.forEach(require_scale); });
 }
 
-function initParams() {
-  //this.maxFrameNumber = 180;
+function init_params() {
+  //this.max_frame_number = 180;
 
-  this.shapeParams = {
-    editCode: false,
-    editorWidth: 340, //(window.innerWidth*0.25),
+  this.shape_params = {
+    edit_code: false,
+    editor_width: 340, //(window.innerWidth*0.25),
 		resolution: 30,
     reset: false,
     dimensions: 5,
-    memoryOveruse: 0.5,
+    memory_overuse: 0.5,
 		iso: 5,
 		parameters: [],
     interpolate: true,
-    maxCoeffCount: 32,
-    coeffCount: 6,
+    max_coeff_count: 32,
+    coeff_count: 6,
     coeff: [3.5, 3, 1.5, 3, -1, 2],
 	};
-  this.n = shapeParams.dimensions; // n was used in an earlier version, as a constant; consider it a relic that is not worth cleaning up.
-  this.cachedCoeff = new Array(shapeParams.maxCoeffCount);
-  for (var i=0; i<shapeParams.maxCoeffCount; i++) {
-    cachedCoeff[i] = 0;
+  this.n = shape_params.dimensions; // n was used in an earlier version, as a constant; consider it a relic that is not worth cleaning up.
+  this.cached_coeff = new Array(shape_params.max_coeff_count);
+  for (var i=0; i<shape_params.max_coeff_count; i++) {
+    cached_coeff[i] = 0;
   }
 
-  this.cameraParams = {
+  this.camera_params = {
     perspective: true,
     fov: 50,
     scale: 1,
@@ -52,41 +52,41 @@ function initParams() {
     fps: true,
   };
 
-  this.materialParams = {
-    calcNormals: true,
+  this.material_params = {
+    calc_normals: true,
     material: 4,
 		opacity: 0.15,
 		side: 0,
 		blending: 2,
 		equation: 0,
-		depthTest: false,
-		depthWrite: false,
+		depth_test: false,
+		depth_write: false,
 		wireframe: true,
 		coordinates: true,
 		values: true,
 		geometry: true,
   }
 
-  this.transformParams = {
+  this.transform_params = {
     zoom: 1.4,
-    invertOrder: false,
-    pushTransform: false,
-    popTransform: false,
-    applyTransforms: false,
-    popAllOnApply: true,
-    resetOrientation: false,
-    popAllTransforms: false,
+    invert_order: false,
+    push_transform: false,
+    pop_transform: false,
+    apply_transforms: false,
+    pop_all_on_apply: true,
+    reset_orientation: false,
+    pop_all_transforms: false,
   };
 }
 
 // Numeric URL input is untrusted. Fall back without leaving partial GUI state.
-function getURLResolution(fallback) {
-  requireResolution(fallback);
+function get_url_resolution(fallback) {
+  require_resolution(fallback);
   try {
     var text = getURLParameter('resolution');
     if (text === null) return fallback;
     if (!/^\d+$/.test(text)) throw new Error('Invalid resolution URL parameter');
-    return requireResolution(Number(text));
+    return require_resolution(Number(text));
   } catch (error) {
     console.warn('Ignoring invalid resolution URL parameter:', error.message);
     return fallback;
