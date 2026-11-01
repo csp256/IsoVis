@@ -1,13 +1,51 @@
+function reportWorkerError(message) {
+ var box = document.getElementById('workerError');
+ if (!box) {
+  box = document.createElement('div');
+  box.id = 'workerError';
+  box.setAttribute('role', 'alert');
+  box.style.cssText = 'position:fixed;bottom:0;left:0;z-index:10000;background:#500;color:white;padding:8px';
+  document.body.appendChild(box);
+ }
+ box.textContent = 'Calculation failed: ' + message + '. The last successful surface is retained. Edit the function and click Update to retry.';
+}
+
+function bindWorkerEvents(worker, octant) {
+ worker.onmessage = function(e) {
+  if (workers[octant] === worker) handleWorkerMessage(e);
+ };
+ function failed(e) {
+  if (workers[octant] !== worker) return;
+  if (e.preventDefault) e.preventDefault();
+  worker.terminate();
+  workers[octant] = makeWorker(workerSourceString);
+  bindWorkerEvents(workers[octant], octant);
+  vertexBuffer[octant] = new ArrayBuffer(4);
+  faceBuffer[octant] = new ArrayBuffer(4);
+  normalBuffer[octant] = new ArrayBuffer(4);
+  waitingForWebWorker[octant] = false;
+  workersNeedInit = true;
+  reportWorkerError(e.message || 'Worker communication error');
+  if (!waitingForAnyWebWorker()) document.title = title;
+ }
+ worker.onerror = failed;
+ worker.onmessageerror = failed;
+}
+
+var workersNeedInit = false;
+
 function talkToWorker(msg) {
 	if (!waitingForAnyWebWorker()) {
 		document.title = titleBusy;
 		console.time("All Workers");
 		var R = computeFullTransform();
     var outgoing = {num: 0, messageType:msg, R: R, n: n, params: shapeParams, calcNormals: materialParams.calcNormals};
+    if (workersNeedInit) outgoing.messageType = 'init';
     if (msg == 'code') {
 			// All but the last line... yes the indexing is weird but correct.
       outgoing.code = myCodeMirror.getRange({line: 1, ch: 0}, {line: myCodeMirror.lineCount()-2, ch: Infinity});
     }
+		workersNeedInit = false;
 		for (var i=0; i<8; i++) {
 			waitingForWebWorker[i] = true;
 			console.time("Worker " + i + " Total");
@@ -31,6 +69,15 @@ function waitingForAnyWebWorker() {
 
 function handleWorkerMessage(e) {
 	var octant = e.data.num;
+ if (e.data.error) {
+  vertexBuffer[octant] = e.data.buffers[0];
+  faceBuffer[octant] = e.data.buffers[1];
+  normalBuffer[octant] = e.data.buffers[2];
+  waitingForWebWorker[octant] = false;
+  reportWorkerError(e.data.error);
+  if (!waitingForAnyWebWorker()) document.title = title;
+  return;
+ }
 	vertexBuffer[octant] = meshes[octant].geometry.attributes.position.array.buffer;
 	faceBuffer[octant] = meshes[octant].geometry.index.array.buffer;
 	normalBuffer[octant] = meshes[octant].geometry.attributes.normal.array.buffer;
@@ -71,7 +118,7 @@ function resetWorker(r) {
 	}
 	for (var i=0; i<8; i++) {
 		workers[i] = makeWorker(workerSourceString);
-		workers[i].onmessage = handleWorkerMessage;
+		bindWorkerEvents(workers[i], i);
 	}
 	talkToWorker('init');
 

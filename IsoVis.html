@@ -160,17 +160,7 @@
 		  }
 
 		  function updateFieldFunction(data) {
-		  	if (data.messageType == 'code') {
-		  		try {
-		  			field = new Function('x', 'c', data.code);
-		  		} catch(err) {
-		  			if (data.num == 0) {
-		  				console.log(err);
-		  				console.log('Could not compile code. Building default field() instead.');
-		  			}
-		  			field = defaultField();
-		  		}
-		  	}
+		  	if (typeof data.code == 'string') field = new Function('x', 'c', data.code);
 		  }
 
 		  function rebuildScalarField(c, num) {
@@ -210,6 +200,12 @@
 
 		  onmessage = function(e) {
 	    	console.time('Worker ' + e.data.num + ' Task');
+            var previousField = typeof field == 'undefined' ? null : field;
+            // Establish ownership even if user code throws before geometry work.
+            this.vertexBuffer = e.data.vertexBuffer;
+            this.faceBuffer = e.data.faceBuffer;
+            this.normalBuffer = e.data.normalBuffer;
+            try {
 	    	switch (e.data.messageType) {
 	    		case 'echo':
 	    			self.postMessage( e.data.num );
@@ -224,6 +220,8 @@
 	    		case 'scalarField':
 	    			rebuildScalarField(e.data.params.coeff, e.data.num);
 	    		case 'geometry':
+                        if (this.fieldNeedsRecovery) rebuildScalarField(e.data.params.coeff, e.data.num);
+                        this.fieldNeedsRecovery = false;
 						this.vertexBuffer = e.data.vertexBuffer;
 						this.faceBuffer = e.data.faceBuffer;
 						this.normalBuffer = e.data.normalBuffer;
@@ -234,6 +232,12 @@
 	    			console.log('ERROR');
 	    		break;
 	    	}
+            } catch (err) {
+                this.field = previousField || defaultField();
+                this.fieldNeedsRecovery = true;
+                var returned = [vertexBuffer, faceBuffer, normalBuffer];
+                self.postMessage({num:e.data.num, error:String(err.message || err), buffers:returned}, returned);
+            }
 		  	//console.timeEnd('Worker ' + e.data.num + ' Task');
 		  }
 
