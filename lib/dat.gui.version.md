@@ -16,3 +16,9 @@ and historical private fields, so future updates must include browser checks.
 Do not replace Three.js/OrbitControls with an unrelated current version as part
 of this update: controls must match the renderer and interaction behavior needs
 separate verification.
+
+Upstream 0.7.9 still registers a non-removing anonymous window mouseup handler
+inside ColorController's selector mousedown path. IsoVis therefore uses a native
+RGB color input backed by a normal string controller for the single background
+picker, instead of modifying that upstream code. This also avoids extra global
+color-drag handlers. Background values remain hexadecimal strings.

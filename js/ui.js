@@ -92,7 +92,11 @@ function cameraFolder(g) {
   folder.add(cameraParams, 'radius').min(0).max(10).step(0.01);
   folder.add(cameraParams, 'speed').min(0).max(10).step(0.01);
   folder.add(cameraParams, 'axes');
-  folder.addColor(cameraParams, 'background').onChange( updateBackground ).listen();
+  // A native RGB picker avoids the upstream ColorController's retained global
+  // mouseup closure while preserving a simple background-color control.
+  var background = folder.add(cameraParams, 'background').onChange(updateBackground).listen();
+  background.__input.type = 'color';
+  background.__input.addEventListener('input', function() { background.setValue(this.value); });
   folder.add(cameraParams, 'fps').onChange( updateStats );
 }
 
