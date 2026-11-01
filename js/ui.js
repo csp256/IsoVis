@@ -1,12 +1,49 @@
+// dat.GUI mutates before invoking callbacks: restore invalid edits immediately.
+function validatedNumberControl(folder, object, key, validate, changed, finish, bounds) {
+  var previous = object[key];
+  // Set ranges before callbacks: dat.GUI can replace boxes with sliders when
+  // bounds are added later, dropping handlers attached to the original box.
+  var control = folder.add.apply(folder, [object, key].concat(bounds || []));
+  var accepted = true;
+  control.onChange(function(value) {
+    try { validate(value); }
+    catch (error) {
+      accepted = false;
+      object[key] = previous;
+      control.updateDisplay();
+      reportWorkerError(error.message);
+      return;
+    }
+    accepted = true;
+    previous = value;
+    if (!finish) changed();
+  });
+  if (finish) control.onFinishChange(function() { if (accepted) changed(); });
+  return control;
+}
+
+// Keep lifecycle adaptation in application code; the vendored build is pristine.
+function destroyGUI(gui) {
+  function stopListening(folder) {
+    folder.__listening.length = 0;
+    Object.keys(folder.__folders).forEach(function(name) { stopListening(folder.__folders[name]); });
+  }
+  // End any active numeric/color/panel drag before removing its controls.
+  window.dispatchEvent(new MouseEvent('mouseup'));
+  stopListening(gui);
+  gui.destroy();
+
+}
+
 function buildLeftGUI() {
   if (typeof leftgui == 'undefined') {
     // Default state.
     var closedState = { Shape: false, Camera: true, Material: true };
   } else {
     var closedState = { Shape: leftgui.__folders.Shape.closed, Camera: leftgui.__folders.Camera.closed, Material: leftgui.__folders.Material.closed };
-    leftgui.destroy();
+    destroyGUI(leftgui);
   }
-	leftgui = new dat.GUI( {autoplace:false, } );
+	leftgui = new dat.GUI({hideable:false});
   leftgui.domElement.id = 'leftGUI';
 
   shapeFolder(leftgui);
@@ -23,6 +60,7 @@ function buildLeftGUI() {
 }
 
 function updateCoeff() {
+  setScalarFieldDirty();
   while (shapeParams.coeff.length < shapeParams.coeffCount) {
     shapeParams.coeff.push(cachedCoeff[shapeParams.coeff.length]);
   }
@@ -32,8 +70,7 @@ function updateCoeff() {
 
   var c = leftgui.__folders.Shape.__folders.Coefficients.closed;
   leftgui.__folders.Shape.__folders.Coefficients.close();
-  leftgui.__folders.Shape.__folders.Coefficients.domElement.parentNode.parentNode.removeChild(leftgui.__folders.Shape.__folders.Coefficients.domElement.parentNode);
-  leftgui.__folders.Shape.__folders.Coefficients = undefined;
+  leftgui.__folders.Shape.removeFolder(leftgui.__folders.Shape.__folders.Coefficients);
   leftgui.__folders.Shape.onResize();
   var subFolder = leftgui.__folders.Shape.addFolder('Coefficients');
   for (var i=0; i<shapeParams.coeffCount; i++) {
@@ -47,16 +84,24 @@ function updateCoeff() {
 }
 
 function dimensionsChanged() {
+  try {
+    var nextStack = normalizedTransformStack(transforms, shapeParams.dimensions, false);
+  } catch (error) {
+    shapeParams.dimensions = n;
+    reportWorkerError(error.message);
+    buildLeftGUI();
+    return;
+  }
   n = shapeParams.dimensions;
+  transforms = nextStack;
   resetOrientation();
   resetWorker(shapeParams.resolution);
-  buildRightGUI();
 }
 
 function shapeFolder(g) {
   var folder = g.addFolder('Shape');
   folder.add(shapeParams, 'editorWidth').min(0).max(window.innerWidth*0.5 /* - Math.min(245, 2*parseInt(leftgui.domElement.style.width)) */).step(1).onFinishChange( updateEditor );
-  folder.add(shapeParams, 'resolution').min(0).max(65).step(1).onFinishChange( setSizeDirty );
+  validatedNumberControl(folder, shapeParams, 'resolution', requireResolution, setSizeDirty, true, [2,65,1]);
   folder.add(shapeParams, 'reset').name('Abort').onChange( resetWorker10 );
   folder.add(shapeParams, 'memoryOveruse').min(0).max(1).step(0.01);
   folder.add(shapeParams, 'interpolate').onChange( setMeshDirty );
@@ -81,7 +126,11 @@ function cameraFolder(g) {
   folder.add(cameraParams, 'radius').min(0).max(10).step(0.01);
   folder.add(cameraParams, 'speed').min(0).max(10).step(0.01);
   folder.add(cameraParams, 'axes');
-  folder.addColor(cameraParams, 'background').onChange( updateBackground ).listen();
+  // A native RGB picker avoids the upstream ColorController's retained global
+  // mouseup closure while preserving a simple background-color control.
+  var background = folder.add(cameraParams, 'background').onChange(updateBackground).listen();
+  background.__input.type = 'color';
+  background.__input.addEventListener('input', function() { background.setValue(this.value); });
   folder.add(cameraParams, 'fps').onChange( updateStats );
 }
 
@@ -112,11 +161,11 @@ function buildRightGUI() {
   } else {
     //for (obj in rightgui.__folders) { ... }
     var closedState = { Transforms: rightgui.__folders.Transforms.closed };
-    rightgui.destroy();
+    destroyGUI(rightgui);
   }
-  rightgui = new dat.GUI();
+  rightgui = new dat.GUI({hideable:false});
 
-  rightgui.add(transformParams, 'zoom').min(0).onChange( setCoordsDirty );
+  validatedNumberControl(rightgui, transformParams, 'zoom', requireZoom, setCoordsDirty, false, [0.000001]);
 
   transformsFolder(rightgui);
   rightgui.__folders.Transforms.closed = closedState.Transforms;
@@ -133,7 +182,7 @@ function buildRightGUI() {
 			case "1": // SCALE
 				var folder = rightgui.addFolder((i+1)+' Scale');
 				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( updateTransformType );
-        for (var k=0; k<n; k++) folder.add(transforms[i].s, k, transforms[i].s[k]).min(-Infinity).onChange(setCoordsDirty);
+        for (var k=0; k<n; k++) validatedNumberControl(folder, transforms[i].s, k, requireScale, setCoordsDirty, false, [-Infinity]);
 			break;
 			case "2": // TRANSLATE
 				var folder = rightgui.addFolder((i+1)+' Translation');

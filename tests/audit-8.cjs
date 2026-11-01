@@ -21,11 +21,11 @@ assert.equal(c.n,7);assert.equal(c.baseOrientation.length,8);assert.equal(c.tran
 assert.equal(c.transforms[0].s[6],1);assert.equal(c.transforms[0].d[6],0);
 const saved=JSON.stringify(c.shapeParams);
 for(const data of [{dimensions:2},{dimensions:3.5},{dimensions:7,resolution:-1},{coeff:[1,null]}]) {
- input=JSON.stringify([{name:'shapeParams',data}]);assert.throws(()=>c.importFromJSON());assert.equal(JSON.stringify(c.shapeParams),saved);
+ input=JSON.stringify([{name:'shapeParams',data}]);assert.throws(()=>c.importSettings(input));assert.equal(JSON.stringify(c.shapeParams),saved);
 }
 let t=JSON.parse(JSON.stringify(c.transforms[0]));t.axis1=8;
 input=JSON.stringify([{name:'shapeParams',data:{dimensions:4}},{name:'transforms',data:[t]}]);
-assert.throws(()=>c.importFromJSON());assert.equal(c.n,7);
+assert.throws(()=>c.importSettings(input));assert.equal(c.n,7);
 input=JSON.stringify([{name:'shapeParams',data:{dimensions:3}}]);c.importFromJSON();
 assert.equal(c.n,3);assert.equal(c.baseOrientation.length,4);assert.equal(c.transforms[0].d.length,3);assert.equal(resets,2);
 

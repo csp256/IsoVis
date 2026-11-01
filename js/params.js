@@ -1,3 +1,22 @@
+// Shared numeric invariants for controls, saved settings and dispatch.
+function requireResolution(value) {
+  if (!Number.isInteger(value) || value < 2 || value > 65) throw new Error('Resolution must be an integer between 2 and 65');
+  return value;
+}
+function requireZoom(value) {
+  if (!Number.isFinite(value) || value <= 0) throw new Error('Zoom must be finite and greater than zero');
+  return value;
+}
+function requireScale(value) {
+  if (!Number.isFinite(value) || value === 0) throw new Error('Scale factors must be finite and nonzero');
+  return value;
+}
+function validateNumericSettings(shape, transform, stack) {
+  requireResolution(shape.resolution);
+  requireZoom(transform.zoom);
+  stack.forEach(function(t) { t.s.forEach(requireScale); });
+}
+
 function initParams() {
   //this.maxFrameNumber = 180;
 
@@ -58,4 +77,18 @@ function initParams() {
     resetOrientation: false,
     popAllTransforms: false,
   };
+}
+
+// Numeric URL input is untrusted. Fall back without leaving partial GUI state.
+function getURLResolution(fallback) {
+  requireResolution(fallback);
+  try {
+    var text = getURLParameter('resolution');
+    if (text === null) return fallback;
+    if (!/^\d+$/.test(text)) throw new Error('Invalid resolution URL parameter');
+    return requireResolution(Number(text));
+  } catch (error) {
+    console.warn('Ignoring invalid resolution URL parameter:', error.message);
+    return fallback;
+  }
 }

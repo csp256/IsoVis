@@ -1,3 +1,26 @@
+// Pure preparation used by GUI changes and imported sessions. No live mutation.
+function normalizedTransformStack(stack, dimensions, explicitStack) {
+ if (!Number.isInteger(dimensions) || dimensions < 3) throw new Error('Dimensions must be an integer of at least 3');
+ if (!Array.isArray(stack)) throw new Error('Invalid transform stack');
+ stack = stack.map(function(t) {
+  if (!t || ['0','1','2','3'].indexOf(t.type) < 0) throw new Error('Invalid transform type');
+  var result = {};
+  Object.keys(t).forEach(function(key) { result[key] = t[key]; });
+  ['axis1','axis2','row','col'].forEach(function(key) {
+   if (!Number.isInteger(t[key]) || t[key] < 0 || (explicitStack && t[key] >= dimensions)) throw new Error('Invalid transform axis');
+   result[key] = Math.min(t[key], dimensions-1);
+  });
+  ['degrees','shear'].forEach(function(key) { if (!Number.isFinite(t[key])) throw new Error('Invalid transform value'); });
+  ['s','d'].forEach(function(key) {
+   if (!Array.isArray(t[key]) || !t[key].every(Number.isFinite) || (explicitStack && t[key].length !== dimensions)) throw new Error('Invalid transform vector');
+   result[key] = Array.from({length:dimensions}, function(_,i) { return i<t[key].length ? t[key][i] : key=='s' ? 1 : 0; });
+  });
+  if (result.s.some(function(x) {return x===0;})) throw new Error('Scale cannot be zero');
+  return result;
+ });
+ return stack;
+}
+
 function invertOrder() {
 	transforms.reverse();
 	setCoordsDirty();
@@ -94,5 +117,6 @@ function computeTransform() {
 	return R;
 }
 function computeFullTransform() {
+	validateNumericSettings(shapeParams, transformParams, transforms);
 	return numeric.mul(1/transformParams.zoom, numeric.dot(baseOrientation, computeTransform()));
 }

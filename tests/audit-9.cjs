@@ -27,6 +27,6 @@ for(const modified of [false,true]) {
  assert.equal(vm.runInContext('activeFieldSource',c),'values.fill(42);');assert(editor.includes('values.fill(42);'));
 }
 const old=JSON.stringify(c.baseOrientation);
-input=JSON.stringify({...saved,baseOrientation:[[1]]});assert.throws(()=>c.importFromJSON());assert.equal(JSON.stringify(c.baseOrientation),old);
-input=JSON.stringify({...saved,version:20});assert.throws(()=>c.importFromJSON());
+input=JSON.stringify({...saved,baseOrientation:[[1]]});assert.throws(()=>c.importSettings(input));assert.equal(JSON.stringify(c.baseOrientation),old);
+input=JSON.stringify({...saved,version:20});assert.throws(()=>c.importSettings(input));
 input=JSON.stringify(saved.groups);c.importFromJSON();assert.equal(c.baseOrientation[0][5],0);assert.equal(editor,'default');
