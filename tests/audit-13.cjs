@@ -15,7 +15,7 @@ const worker = () => {
 const c=context({myMaterial:undefined, document:{}, title:'IsoVis', waitingForWebWorker:Array(8).fill(false),
  vertexBuffer:[],faceBuffer:[],normalBuffer:[],resetScenes(){},theBoundingSphere:{}});
 load(c,'lib/three.min.js'); load(c,'js/workerInterface.js');load(c,'js/isovis.js');
-c.resetScenes=()=>{};c.meshes=Array.from({length:8},()=>new c.THREE.Mesh(new c.THREE.BufferGeometry()));
+vm.runInContext('resetScenes = function() {};',c);c.meshes=Array.from({length:8},()=>new c.THREE.Mesh(new c.THREE.BufferGeometry()));
 let disposed=0;
 c.meshes.forEach(m=>{m.geometry.addAttribute('position',new c.THREE.BufferAttribute(new Float32Array(3),3));
  m.geometry.setIndex(new c.THREE.BufferAttribute(new Float32Array(3),3));
