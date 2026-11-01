@@ -49,7 +49,7 @@ function exportToJSON() {
   foo.push({name: 'materialParams', data: materialParams});
   foo.push({name: 'transformParams', data: transformParams});
   foo.push({name: 'transforms', data: transforms});
-  window.prompt("Copy to clipboard: Ctrl+C, Enter.", JSON.stringify(foo));
+  window.prompt("Copy to clipboard: Ctrl+C, Enter.", JSON.stringify({version:1, groups:foo, baseOrientation:baseOrientation, activeFieldSource:activeFieldSource}));
 }
 
 var foo;
@@ -63,8 +63,23 @@ function merge(a, b) {
 function importFromJSON() {
   var inString = window.prompt("Paste JSON, Enter.", '');
   if (inString === null) return;
-  foo = JSON.parse(inString);
+  var saved = JSON.parse(inString);
+  if (!Array.isArray(saved) && (!saved || saved.version !== 1 || !Array.isArray(saved.groups))) throw new Error('Unsupported session format');
+  foo = Array.isArray(saved) ? saved : saved.groups;
   var dimensionState = importedDimensionState(foo);
+  var dimensions = dimensionState.dimensions;
+  foo.forEach(function(group) {
+   if (group.name == 'shapeParams' && group.data.dimensions !== undefined) dimensions = group.data.dimensions;
+  });
+  if (!Number.isInteger(dimensions) || dimensions < 3) throw new Error('Invalid dimensions');
+  var matrix = Array.isArray(saved) ? numeric.identity(dimensions+1) : saved.baseOrientation;
+  if (!Array.isArray(matrix) || matrix.length !== dimensions+1 || !matrix.every(function(row) {
+   return Array.isArray(row) && row.length === dimensions+1 && row.every(Number.isFinite);
+  })) throw new Error('Invalid base orientation');
+  var source = Array.isArray(saved) ? null : saved.activeFieldSource;
+  if (source !== null && typeof source != 'string') throw new Error('Invalid function source');
+  if (source !== null) new Function('x','c',source); // Syntax check before changing state.
+
   
   for (var i in foo) {
     var group = foo[i];
@@ -88,10 +103,16 @@ function importFromJSON() {
   }
   n = dimensionState.dimensions;
   shapeParams.dimensions = n;
-  baseOrientation = numeric.identity(n+1);
   transforms = dimensionState.transforms;
   shapeParams.coeffCount = shapeParams.coeff.length;
   for (var k=0; k<shapeParams.coeff.length; k++) cachedCoeff[k] = shapeParams.coeff[k];
+  baseOrientation = matrix.map(function(row) {return row.slice();});
+  activeFieldSource = source;
+  // Replace the editor draft too, so the visible session matches the restored one.
+  myCodeMirror.off('beforeChange', beforeChangeCallback);
+  myCodeMirror.setValue(source === null ? defaultText() : 'function field(x, c, size3, n) {\n' + source + '\n}');
+  myCodeMirror.on('beforeChange', beforeChangeCallback);
+
   resetWorker(shapeParams.resolution);
   updateMaterial();
   updateBackground();
