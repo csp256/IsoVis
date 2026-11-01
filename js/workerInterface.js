@@ -7,7 +7,7 @@ function surfaceGeometry(data) {
  var geometry = new THREE.BufferGeometry();
  if (data.vertexCount <= 65535) {
   geometry.setIndex(new THREE.BufferAttribute(new Uint16Array(indices), 1));
- } else if (renderer.extensions.get('OES_element_index_uint')) {
+ } else if (renderer.extensions && renderer.extensions.get('OES_element_index_uint')) {
   geometry.setIndex(new THREE.BufferAttribute(indices, 1));
  } else {
   var expandedPositions = new Float32Array(indices.length * 3);
