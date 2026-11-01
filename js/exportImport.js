@@ -31,9 +31,16 @@ function prepareSession(text) {
     var patch = groups.filter(function(g) {return g.name === 'shapeParams';})[0].data;
     if (patch.coeff !== undefined && patch.coeffCount === undefined) shape.coeffCount = patch.coeff.length;
   }
+  var booleanFields = {
+    shapeParams:['editCode','reset','interpolate'],
+    cameraParams:['perspective','wobble','axes','fps'],
+    materialParams:['calcNormals','depthTest','depthWrite','wireframe','coordinates','values','geometry'],
+    transformParams:['invertOrder','pushTransform','popTransform','applyTransforms','popAllOnApply','resetOrientation','popAllTransforms']
+  };
   Object.keys(current).forEach(function(name) {
     Object.keys(current[name]).forEach(function(key) {
-      var expected = typeof current[name][key], actual = state[name][key];
+      var expected = name === 'cameraParams' && key === 'background' ? 'string' : booleanFields[name].indexOf(key) >= 0 ? 'boolean' : 'number';
+      var actual = state[name][key];
       // GUI enum controllers serialize their values as numeric strings.
       var enumKey = name === 'materialParams' && ['material','side','blending','equation'].indexOf(key) >= 0;
       if (enumKey && typeof actual === 'string' && /^\d+$/.test(actual)) actual = state[name][key] = Number(actual);

@@ -31,3 +31,8 @@ for(const text of invalid){assert.throws(()=>c.importSettings(text));assert.equa
 assert.equal(alerts.length,invalid.length);
 input=JSON.stringify([{name:'shapeParams',data:{coeff:[2],coeffCount:1}},{name:'materialParams',data:{side:'2'}}]);assert.equal(c.importFromJSON(),true);assert.equal(c.shapeParams.coeffCount,1);assert.equal(c.materialParams.side,2);assert.equal(resets,1);
 input=null;assert.equal(c.importFromJSON(),false);assert.equal(resets,1);
+
+// GUI enum strings are accepted regardless of the receiving session's state.
+c.materialParams.side='2';c.materialParams.material='4';
+c.importSettings(JSON.stringify([{name:'materialParams',data:{side:'1',material:'3'}}]));
+assert.equal(c.materialParams.side,1);assert.equal(c.materialParams.material,3);
