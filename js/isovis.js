@@ -1,5 +1,5 @@
 function init() {
-	this.workerSourceString = gatherWorkerResource('worker');
+	this.workerSourceString = gatherWorkerResource('defaultFieldSource') + gatherWorkerResource('worker');
 //	workerSourceString = workerSourceString + gatherWorkerResource('three');
 	workerSourceString = workerSourceString + gatherWorkerResource('marchingCubes');
 
