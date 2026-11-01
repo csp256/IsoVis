@@ -141,6 +141,7 @@ function dispatchPendingWork() {
  workersNeedInit = false;
  var outgoing = {num:0, batchId:++workerBatchId, messageType:workerStages[stage], R:R, n:n,
 
+
   params:shapeParams, calcNormals:materialParams.calcNormals};
  if (activeFieldSource !== null) outgoing.code = activeFieldSource;
  document.title = titleBusy;
