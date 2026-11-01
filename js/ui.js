@@ -2,17 +2,21 @@
 function validatedNumberControl(folder, object, key, validate, changed, finish) {
   var previous = object[key];
   var control = folder.add(object, key);
-  control[finish ? 'onFinishChange' : 'onChange'](function(value) {
+  var accepted = true;
+  control.onChange(function(value) {
     try { validate(value); }
     catch (error) {
+      accepted = false;
       object[key] = previous;
       control.updateDisplay();
       reportWorkerError(error.message);
       return;
     }
+    accepted = true;
     previous = value;
-    changed();
+    if (!finish) changed();
   });
+  if (finish) control.onFinishChange(function() { if (accepted) changed(); });
   return control;
 }
 
