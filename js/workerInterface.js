@@ -89,7 +89,14 @@ function dispatchPendingWork() {
  if (pendingWorkerStage === null || waitingForAnyWebWorker()) return;
  var stage = workersNeedInit ? 0 : pendingWorkerStage;
  workersNeedInit = false;
- var outgoing = {num:0, messageType:workerStages[stage], R:computeFullTransform(), n:n,
+ var R;
+ try { R = computeFullTransform(); }
+ catch (error) {
+  pendingWorkerStage = pendingWorkerCode = null;
+  reportWorkerError(error.message);
+  return;
+ }
+ var outgoing = {num:0, messageType:workerStages[stage], R:R, n:n,
   params:shapeParams, calcNormals:materialParams.calcNormals};
  if (activeFieldSource !== null) outgoing.code = activeFieldSource;
  document.title = titleBusy;
