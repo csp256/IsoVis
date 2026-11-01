@@ -3,7 +3,30 @@ Create higher dimensional shapes in a web browser.
 
 ![GitHub Logo](/image2.png)
 
-Download, unzip, and open IsoVis.html in Google Chrome. (ctrl + o) [Or you could just click here.](https://rawgit.com/csp256/IsoVis/master/IsoVis.html)
+## Run locally
+
+Download or clone this repository, keeping `IsoVis.html`, `js/`, `lib/`, and
+`css/` together. Open **IsoVis.html** in Chrome (Ctrl+O / Cmd+O, or drag it into
+a window). The app is plain browser JavaScript + Three.js: **no Node, Bun,
+package installation, compilation, or build step is required to use it**.
+
+Chrome is the primary verification target. Other browsers and browser policies
+may differ, especially for local files, Web Workers and large meshes. There is
+no maintained hosted demo linked here; the old RawGit link has been removed.
+The default branch is `main`.
+
+### Tests and maintenance
+
+Contributors can optionally install [Bun](https://bun.sh/) and run
+`bun tests/run.cjs` from the repository root. Tests use small sequential fixtures
+without third-party dependencies. See [tests/README.md](tests/README.md).
+
+Correctness smoke tests and stable resource counters are not performance
+benchmarks. Compare representative workloads, normals enabled/disabled, and
+matching browser/hardware settings before claiming a speedup or changing the
+hand-tuned marching-cubes traversal. Check upstream releases before modifying
+vendored libraries; pin compatible versions and retain source/license details.
+Three.js and its controls need a coordinated compatibility check.
 
 You can edit every parameter defining the shape in real time. Write your own JavaScript function & adjust "iso" to see different parts of the function. Scale, rotate, & translate through any dimension.
 
@@ -126,13 +149,35 @@ The amount and speed of the camera bob can be changed in the "Camera" window in 
 
 The "Screenshot" button on the upper left takes a screenshot. Duh.
 
-"Import" and "Export" next to it allow you to save or share all of your current settings in the JSON format. The exception is the function defined in the text editor! You must save that manually!
+### Saved sessions
+
+**Export** saves a versioned JSON session containing shape, camera, material and
+transform settings, the transform stack, the applied base orientation, and the
+**active submitted function source**. Click Update before exporting if you want
+your current editor changes included: unsubmitted drafts are not saved.
+
+**Import** restores that session, including the submitted function in the editor,
+and rebuilds workers. Legacy array-of-groups files remain supported; because
+they omit the base orientation and function, those omitted values reset to the
+identity/default rather than inheriting an unrelated receiving session.
+
+Treat session files as executable input: submitted JavaScript runs in workers.
+Only import files/source you trust. Save a copy of your current session first.
+Invalid settings should be corrected rather than bypassed. A failed calculation
+reports an error; edit the function and click Update to retry. Abort terminates
+an unresponsive calculation.
 
 Under "Shape" the "memoryOveruse" setting amortizes memory allocation for smoother operation. Decrease it for minimal memory use, but worse performance in the typical case.
 
-The "Abort" button will kill all processes and decrease the resolution. Spamming this button will crash IsoVis. Refresh with F5 if this happens.
+The **Abort** button terminates and replaces the calculation workers and lowers
+the resolution to 10. It keeps the active submitted function, not unsubmitted
+editor edits. It does not cancel or undo edits to saved settings.
 
-Several of the settings under "Material" are broken or half broken, but the "Opacity" setting can be useful.
+Material settings control wireframe/solid rendering, lighting and transparency.
+Actual surface normals are calculated when enabled; this costs computation.
+Disabled normal calculation does not supply useful lighting/normal colors, so
+use an unlit material when normals are off. Large meshes may use a nonindexed
+fallback if unsigned 32-bit element indices are unavailable.
 
 ## FAQ (aka, WTF's)
 
@@ -144,23 +189,23 @@ Security policy for web browsers makes this the easiest, safest way to use "Web 
 
 This started off as a quick, one-off side project. I started off unfamiliar with how Javascript's "var" worked, and ended up making large portions of the core logic use global variables because that is the default behavior of new variables in function scope, for some reason. Whoops! This can be fixed (nothing is reliant upon them being global, per se), but it would be time consuming / slightly annoying so I haven't done it. 
 
-## Bugs and upcoming features
+## Experimental features and remaining limitations
 
-* Gif-making does not work properly (highest priority)
-* Editor is not included in import/export feature
-* No set of default functions
-* No volumetric visualization
-* Zoom sensitivity is not constant (easy fix, high priority)
-* Aspect ratio of rendering is dependent upon physical window size (?? fix, medium priority)
-* Changing the number of constants is handled in a stupid way (medium fix, low priority)
-* Only a limited selection of linear transforms (hard fix, medium priority)
-* No non-linear transformations (harder fix, low priority)
-* Code is poorly commented (time intensive, low priority)
-* Remove all global variables (time intensnive, mediums priority) 
-* Interpolation is always on (do not intend to fix)
-* Non-wireframe mode is broken (do not intend to fix)
-* Several other graphical issues; most under "Materials" (do not intend to fix)
-* Interface is bad on mobile phones (do not intend to fix)
+- GIF/frame export is experimental and is not exposed as a supported GUI button.
+  It downloads PNG frames rather than encoding a GIF. The built-in sequence
+  expects two rotation transforms; it is not a general animation editor. Review
+  the implementation before using console-driven `startGIF()`; `stopGIF()`
+  cancels its capture/advance timers. Ordinary screenshots are separate.
+- High resolution and higher dimensions can require substantial memory. Start
+  small; historical memory figures above are not current measurements for every
+  browser or hardware configuration.
+- Mobile interaction, transparency/material combinations and cross-browser
+  behavior need broader testing. A passing Chrome smoke test is not a guarantee.
+- Presets, volumetric visualization and nonlinear transformations are potential
+  future features, not implemented functionality.
+
+Use [GitHub issues](https://github.com/csp256/IsoVis/issues) for the current defect
+and improvement backlog rather than treating the historical bug list as status.
 
 ## Pull requests, suggestions, and use-cases welcome.
 
