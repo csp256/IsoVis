@@ -160,7 +160,7 @@
 		  }
 
 		  function updateFieldFunction(data) {
-		  	if (typeof data.code == 'string') {
+        if (typeof data.code == 'string') {
 		  		try {
 		  			field = new Function('x', 'c', data.code);
 		  		} catch(err) {
