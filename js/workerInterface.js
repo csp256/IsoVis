@@ -203,8 +203,13 @@ function makeWorker(script) {
     }
 
     var blob = new Blob([script]);
-    var worker = new Worker(URL.createObjectURL(blob));
-    return worker;
+    var scriptURL = URL.createObjectURL(blob);
+    try {
+        // Worker construction captures the script URL before returning.
+        return new Worker(scriptURL);
+    } finally {
+        URL.revokeObjectURL(scriptURL);
+    }
 }
 
 function gatherWorkerResource(frameName) {
