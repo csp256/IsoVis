@@ -553,7 +553,25 @@
 					}
 				}
 
-				for (var i=0; i<totalVertexCount*3;i++) normalArray[i] = /*Math.random();*/ vertexArray[i];
+				// Area-weighted mesh normals, outside the tuned cube traversal.
+				// Disabled means zero normals, never position vectors.
+				for (var i=0; i<totalVertexCount*3; i++) normalArray[i] = 0;
+				if (calcNormals) {
+					for (var i=0; i<faceOffset; i+=3) {
+						var a=faceArray[i]*3, b=faceArray[i+1]*3, c=faceArray[i+2]*3;
+						var ux=vertexArray[b]-vertexArray[a], uy=vertexArray[b+1]-vertexArray[a+1], uz=vertexArray[b+2]-vertexArray[a+2];
+						var vx=vertexArray[c]-vertexArray[a], vy=vertexArray[c+1]-vertexArray[a+1], vz=vertexArray[c+2]-vertexArray[a+2];
+						var nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+						for (var j=0; j<3; j++) {
+							var index=faceArray[i+j]*3;
+							normalArray[index]+=nx; normalArray[index+1]+=ny; normalArray[index+2]+=nz;
+						}
+					}
+					for (var i=0; i<totalVertexCount*3; i+=3) {
+						var length=Math.sqrt(normalArray[i]*normalArray[i]+normalArray[i+1]*normalArray[i+1]+normalArray[i+2]*normalArray[i+2]);
+						if (length>0) { normalArray[i]/=length; normalArray[i+1]/=length; normalArray[i+2]/=length; }
+					}
+				}
 
 
 				// buffGeom.addAttribute( 'position', new THREE.BufferAttribute( vertexArray, 3 ) );
