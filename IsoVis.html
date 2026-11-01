@@ -43,6 +43,12 @@
 		<!-- <script src='js/gif.js'></script> -->
 		<script src='js/isovis.js'></script>
 
+		<script id='defaultFieldSource'>
+function defaultFieldBody() {
+ return "for (var i=0,j=0; i<size3; i++,j+=n) {\n var t = Math.sqrt(Math.abs(x[j]*x[j] + x[j+1]*x[j+1] - c[0])) - c[1];\n var u = Math.sqrt(Math.abs(x[j+2]*x[j+2] + x[j+3]*x[j+3] - c[2])) - c[3];\n values[i] = t*t + u*u - c[4]*Math.sin(c[5]*x[j+4]);\n}";
+}
+		</script>
+
 		<script type='text/worker' id='worker'>
 		  var setup = function(dim, s, octant) {
 		  	this.n = dim;
@@ -151,12 +157,7 @@
 		  }
 
 		  function defaultField() {
-		  	return new Function('x', 'c', '\
-					for (var i=0,j=0; i<size3; i++,j+=n) {\
-			  		var t = Math.sqrt(Math.abs(x[j+0]*x[j+0] + x[j+1]*x[j+1] - c[0])) - c[1]; \
-			  		var u = Math.sqrt(Math.abs(x[j+2]*x[j+2] + x[j+3]*x[j+3] - c[2])) - c[3]; \
-			  		values[i] = t*t + u*u - c[4]*Math.sin(c[5]*x[j+4]); \
-					}');
+            return new Function('x', 'c', defaultFieldBody());
 		  }
 
 		  function updateFieldFunction(data) {
