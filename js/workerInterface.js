@@ -26,6 +26,11 @@ function bindWorkerEvents(worker, octant) {
   normalBuffer[octant] = new ArrayBuffer(4);
   waitingForWebWorker[octant] = false;
   workersNeedInit = true;
+  if (activeWorkerBatch) {
+   receiveBatchReply({num:octant,batchId:activeWorkerBatch.id,error:e.message || 'Worker communication error',
+    buffers:[vertexBuffer[octant],faceBuffer[octant],normalBuffer[octant]]});
+   return;
+  }
   reportWorkerError(e.message || 'Worker communication error');
   if (!waitingForAnyWebWorker()) document.title = title;
   if (typeof dispatchPendingWork == 'function') dispatchPendingWork();
@@ -36,6 +41,37 @@ function bindWorkerEvents(worker, octant) {
 }
 
 var workersNeedInit = false;
+var workerBatchId = 0;
+var activeWorkerBatch = null;
+var publishingWorkerBatch = false;
+
+// Returned buffers are staged as CPU data, not GPU geometry, until every octant
+// succeeds. A partial failure returns all buffers without changing any mesh.
+function receiveBatchReply(data) {
+ var batch = activeWorkerBatch;
+ if (!batch || data.batchId !== batch.id || batch.replies[data.num]) return;
+ batch.replies[data.num] = data;
+ batch.remaining--;
+ waitingForWebWorker[data.num] = false;
+ if (data.error) { batch.failed = true; reportWorkerError(data.error); }
+ if (batch.remaining) return;
+ activeWorkerBatch = null;
+ if (batch.failed) {
+  for (var i=0; i<8; i++) {
+   vertexBuffer[i] = batch.replies[i].buffers[0];
+   faceBuffer[i] = batch.replies[i].buffers[1];
+   normalBuffer[i] = batch.replies[i].buffers[2];
+  }
+ } else {
+  publishingWorkerBatch = true;
+  try {
+   for (var i=0; i<8; i++) publishWorkerResult({data:batch.replies[i]});
+  } finally { publishingWorkerBatch = false; }
+ }
+ document.title = title;
+ dispatchPendingWork();
+}
+
 
 // Workers always transfer Uint32 indices. Use a 16-bit upload where possible;
 // without OES_element_index_uint, expand only large meshes to triangle lists.
@@ -86,9 +122,8 @@ function talkToWorker(msg) {
 }
 
 function dispatchPendingWork() {
- if (pendingWorkerStage === null || waitingForAnyWebWorker()) return;
+ if (publishingWorkerBatch || pendingWorkerStage === null || waitingForAnyWebWorker()) return;
  var stage = workersNeedInit ? 0 : pendingWorkerStage;
- workersNeedInit = false;
  var R;
  try { R = computeFullTransform(); }
  catch (error) {
@@ -96,20 +131,25 @@ function dispatchPendingWork() {
   reportWorkerError(error.message);
   return;
  }
- var outgoing = {num:0, messageType:workerStages[stage], R:R, n:n,
+ workersNeedInit = false;
+ var outgoing = {num:0, batchId:++workerBatchId, messageType:workerStages[stage], R:R, n:n,
+
   params:shapeParams, calcNormals:materialParams.calcNormals};
  if (activeFieldSource !== null) outgoing.code = activeFieldSource;
  document.title = titleBusy;
  console.time('All Workers');
  pendingWorkerStage = null;
  pendingWorkerCode = null;
+ activeWorkerBatch = {id:outgoing.batchId,replies:new Array(8),remaining:8,failed:false};
+ for (var i=0; i<8; i++) waitingForWebWorker[i] = true;
  for (var i=0; i<8; i++) {
   waitingForWebWorker[i] = true;
   outgoing.num = i;
   outgoing.vertexBuffer = vertexBuffer[i];
   outgoing.faceBuffer = faceBuffer[i];
   outgoing.normalBuffer = normalBuffer[i];
-  workers[i].postMessage(outgoing, [vertexBuffer[i],faceBuffer[i],normalBuffer[i]]);
+  try { workers[i].postMessage(outgoing, [vertexBuffer[i],faceBuffer[i],normalBuffer[i]]); }
+  catch (error) { workers[i].onerror({message:error.message, preventDefault:function(){}}); }
  }
 
 }
@@ -125,6 +165,13 @@ function waitingForAnyWebWorker() {
 }
 
 function handleWorkerMessage(e) {
+ if (activeWorkerBatch) { receiveBatchReply(e.data); return; }
+ // Replies carrying an obsolete batch id must never overwrite a newer surface.
+ if (e.data.batchId !== undefined) return;
+ publishWorkerResult(e);
+}
+
+function publishWorkerResult(e) {
 	var octant = e.data.num;
  if (e.data.error) {
   vertexBuffer[octant] = e.data.buffers[0];
@@ -174,6 +221,7 @@ function installWorkerHandlers(worker, octant, generation) {
 }
 
 function resetWorker(r) {
+ activeWorkerBatch = null;
  workerGeneration++;
 	shapeParams.reset = false;
 	shapeParams.resolution = r;

@@ -227,7 +227,7 @@ function defaultFieldBody() {
 						this.faceBuffer = e.data.faceBuffer;
 						this.normalBuffer = e.data.normalBuffer;
 						marchingCubes( points, values, e.data.params.iso, e.data.params.interpolate, e.data.calcNormals, e.data.num, e.data.params.memoryOveruse );
-	    			reply(e.data.num);
+            reply(e.data.num, e.data.batchId);
 	    		break;
 	    		default:
 	    			console.log('ERROR');
@@ -237,15 +237,15 @@ function defaultFieldBody() {
                 this.field = previousField || defaultField();
                 this.fieldNeedsRecovery = true;
                 var returned = [vertexBuffer, faceBuffer, normalBuffer];
-                self.postMessage({num:e.data.num, error:String(err.message || err), buffers:returned}, returned);
+                self.postMessage({num:e.data.num, batchId:e.data.batchId, error:String(err.message || err), buffers:returned}, returned);
             }
 		  	//console.timeEnd('Worker ' + e.data.num + ' Task');
 		  }
 
-		  function reply(num) {
+		  function reply(num, batchId) {
 				var b = [vertexBuffer, faceBuffer, normalBuffer];
 //				if (num==0) console.log(vertexBuffer.byteLength);
-        self.postMessage( {num: num, buffers: b, vertexCount: activeVertexCount, indexCount: activeIndexCount}, b);
+        self.postMessage( {num: num, batchId:batchId, buffers: b, vertexCount: activeVertexCount, indexCount: activeIndexCount}, b);
 //console.log(typeof buffers[0]);
 //self.postMessage( buffers, buffers );
 		  }
