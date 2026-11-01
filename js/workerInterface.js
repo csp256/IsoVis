@@ -1,3 +1,41 @@
+function reportWorkerError(message) {
+ var box = document.getElementById('workerError');
+ if (!box) {
+  box = document.createElement('div');
+  box.id = 'workerError';
+  box.setAttribute('role', 'alert');
+  box.style.cssText = 'position:fixed;bottom:0;left:0;z-index:10000;background:#500;color:white;padding:8px';
+  document.body.appendChild(box);
+ }
+ box.textContent = 'Calculation failed: ' + message + '. The last successful surface is retained. Edit the function and click Update to retry.';
+}
+
+function bindWorkerEvents(worker, octant) {
+ var generation = workerGeneration;
+ worker.onmessage = function(e) {
+  if (generation === workerGeneration && workers[octant] === worker) handleWorkerMessage(e);
+ };
+ function failed(e) {
+  if (generation !== workerGeneration || workers[octant] !== worker) return;
+  if (e.preventDefault) e.preventDefault();
+  worker.terminate();
+  workers[octant] = makeWorker(workerSourceString);
+  bindWorkerEvents(workers[octant], octant);
+  vertexBuffer[octant] = new ArrayBuffer(4);
+  faceBuffer[octant] = new ArrayBuffer(4);
+  normalBuffer[octant] = new ArrayBuffer(4);
+  waitingForWebWorker[octant] = false;
+  workersNeedInit = true;
+  reportWorkerError(e.message || 'Worker communication error');
+  if (!waitingForAnyWebWorker()) document.title = title;
+  dispatchPendingWork();
+ }
+ worker.onerror = failed;
+ worker.onmessageerror = failed;
+}
+
+var workersNeedInit = false;
+
 // Workers always transfer Uint32 indices. Use a 16-bit upload where possible;
 // without OES_element_index_uint, expand only large meshes to triangle lists.
 function surfaceGeometry(data) {
@@ -48,7 +86,8 @@ function talkToWorker(msg) {
 
 function dispatchPendingWork() {
  if (pendingWorkerStage === null || waitingForAnyWebWorker()) return;
- var stage = pendingWorkerStage;
+ var stage = workersNeedInit ? 0 : pendingWorkerStage;
+ workersNeedInit = false;
  var outgoing = {num:0, messageType:workerStages[stage], R:computeFullTransform(), n:n,
   params:shapeParams, calcNormals:materialParams.calcNormals};
  if (activeFieldSource !== null) outgoing.code = activeFieldSource;
@@ -67,6 +106,7 @@ function dispatchPendingWork() {
 
 }
 
+
 function waitingForAnyWebWorker() {
 	for (var i=0; i<8; i++) {
 		if (waitingForWebWorker[i]==true) {
@@ -78,6 +118,16 @@ function waitingForAnyWebWorker() {
 
 function handleWorkerMessage(e) {
 	var octant = e.data.num;
+ if (e.data.error) {
+  vertexBuffer[octant] = e.data.buffers[0];
+  faceBuffer[octant] = e.data.buffers[1];
+  normalBuffer[octant] = e.data.buffers[2];
+  waitingForWebWorker[octant] = false;
+  reportWorkerError(e.data.error);
+  if (!waitingForAnyWebWorker()) document.title = title;
+  dispatchPendingWork();
+  return;
+ }
 	vertexBuffer[octant] = meshes[octant].geometry.attributes.position.array.buffer;
 	faceBuffer[octant] = meshes[octant].geometry.index ? meshes[octant].geometry.index.array.buffer : new ArrayBuffer(4);
 	normalBuffer[octant] = meshes[octant].geometry.attributes.normal.array.buffer;
@@ -109,9 +159,7 @@ function initWorkers() {
 }
 
 function installWorkerHandlers(worker, octant, generation) {
- worker.onmessage = function(e) {
-  if (generation === workerGeneration && workers[octant] === worker) handleWorkerMessage(e);
- };
+ bindWorkerEvents(worker, octant);
 }
 
 function resetWorker(r) {
