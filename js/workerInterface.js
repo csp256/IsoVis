@@ -1,3 +1,8 @@
+function clearWorkerError() {
+ var box = document.getElementById('workerError');
+ if (box) { box.textContent = ''; box.hidden = true; }
+}
+
 function reportWorkerError(message) {
  var box = document.getElementById('workerError');
  if (!box) {
@@ -7,6 +12,7 @@ function reportWorkerError(message) {
   box.style.cssText = 'position:fixed;bottom:0;left:0;z-index:10000;background:#500;color:white;padding:8px';
   document.body.appendChild(box);
  }
+ box.hidden = false;
  box.textContent = 'Calculation failed: ' + message + '. The last successful surface is retained. Edit the function and click Update to retry.';
 }
 
@@ -63,6 +69,7 @@ function receiveBatchReply(data) {
    normalBuffer[i] = batch.replies[i].buffers[2];
   }
  } else {
+  clearWorkerError();
   publishingWorkerBatch = true;
   try {
    for (var i=0; i<8; i++) publishWorkerResult({data:batch.replies[i]});
