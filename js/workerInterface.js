@@ -28,7 +28,8 @@ function bindWorkerEvents(worker, octant) {
   workersNeedInit = true;
   reportWorkerError(e.message || 'Worker communication error');
   if (!waitingForAnyWebWorker()) document.title = title;
-  dispatchPendingWork();
+  if (typeof dispatchPendingWork == 'function') dispatchPendingWork();
+
  }
  worker.onerror = failed;
  worker.onmessageerror = failed;
@@ -125,7 +126,8 @@ function handleWorkerMessage(e) {
   waitingForWebWorker[octant] = false;
   reportWorkerError(e.data.error);
   if (!waitingForAnyWebWorker()) document.title = title;
-  dispatchPendingWork();
+  if (typeof dispatchPendingWork == 'function') dispatchPendingWork();
+
   return;
  }
 	vertexBuffer[octant] = meshes[octant].geometry.attributes.position.array.buffer;
