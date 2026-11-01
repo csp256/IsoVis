@@ -98,7 +98,7 @@ function init() {
 	this.updateTransformType = function(value) { coordsDirty = true; buildGUI(); }
 
 	resetScenes();
-	resetWorker(getURLParameterWithDefault('resolution', shapeParams.resolution));
+	resetWorker(getURLResolution(shapeParams.resolution));
 	//buildGUI();
 	updateStats();
 	updateBackground();
