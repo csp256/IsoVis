@@ -161,7 +161,7 @@ function defaultFieldBody() {
 		  }
 
 		  function updateFieldFunction(data) {
-		  	if (data.messageType == 'code') {
+        if (typeof data.code == 'string') {
 		  		try {
 		  			field = new Function('x', 'c', data.code);
 		  		} catch(err) {

@@ -26,17 +26,19 @@ function surfaceGeometry(data) {
  geometry.setDrawRange(0, data.indexCount);
  return geometry;
 }
+// Submitted source is separate from unsubmitted editor contents.
+var activeFieldSource = null;
 
 function talkToWorker(msg) {
+ if (msg == 'code') {
+  activeFieldSource = myCodeMirror.getRange({line: 1, ch: 0}, {line: myCodeMirror.lineCount()-2, ch: Infinity});
+ }
 	if (!waitingForAnyWebWorker()) {
 		document.title = titleBusy;
 		console.time("All Workers");
 		var R = computeFullTransform();
     var outgoing = {num: 0, messageType:msg, R: R, n: n, params: shapeParams, calcNormals: materialParams.calcNormals};
-    if (msg == 'code') {
-			// All but the last line... yes the indexing is weird but correct.
-      outgoing.code = myCodeMirror.getRange({line: 1, ch: 0}, {line: myCodeMirror.lineCount()-2, ch: Infinity});
-    }
+    if (activeFieldSource !== null) outgoing.code = activeFieldSource;
 		for (var i=0; i<8; i++) {
 			waitingForWebWorker[i] = true;
 			console.time("Worker " + i + " Total");
