@@ -240,7 +240,7 @@
 		  function reply(num) {
 				var b = [vertexBuffer, faceBuffer, normalBuffer];
 //				if (num==0) console.log(vertexBuffer.byteLength);
-		  	self.postMessage( {num: num, buffers: b, vertexCount: activeVertexCount, indexCount: activeIndexCount}, b);
+        self.postMessage( {num: num, buffers: b, vertexCount: activeVertexCount, indexCount: activeIndexCount}, b);
 //console.log(typeof buffers[0]);
 //self.postMessage( buffers, buffers );
 		  }
