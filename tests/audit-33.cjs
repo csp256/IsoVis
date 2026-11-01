@@ -30,3 +30,9 @@ load(c,'js/workerInterface.js');vm.runInContext('reportWorkerError=function(){er
 c.talkToWorker('geometry');assert.equal(vm.runInContext('pendingWorkerStage',c),null);assert(c.waitingForWebWorker.every(x=>!x));assert.equal(c.errors,3);
 
 vm.runInContext('workersNeedInit=true;',c);c.talkToWorker('geometry');assert.equal(vm.runInContext('workersNeedInit',c),true);
+
+let change,finish,finished=0;const object={resolution:4};
+const finishFolder={add(){return {onChange(fn){change=fn;},onFinishChange(fn){finish=fn;},updateDisplay(){}};}};
+c.validatedNumberControl(finishFolder,object,'resolution',c.requireResolution,()=>finished++,true);
+object.resolution=NaN;change(NaN);assert.equal(object.resolution,4);finish();assert.equal(finished,0);
+object.resolution=5;change(5);assert.equal(finished,0);finish();assert.equal(finished,1);
