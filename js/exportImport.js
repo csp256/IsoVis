@@ -1,3 +1,92 @@
+// Prepare a complete session without mutating live objects or touching workers.
+function prepareSession(text) {
+  var saved = JSON.parse(text);
+  var legacy = Array.isArray(saved);
+  if (!legacy) {
+    if (!saved || saved.version !== 1 || !Array.isArray(saved.groups)) throw new Error('Unsupported session format');
+    checkSessionKeys(saved, ['version','groups','baseOrientation','activeFieldSource']);
+  }
+  var groups = legacy ? saved : saved.groups;
+  var current = {shapeParams:shapeParams,cameraParams:cameraParams,materialParams:materialParams,transformParams:transformParams};
+  var state = {}, seen = Object.create(null);
+  Object.keys(current).forEach(function(name) { state[name] = Object.assign({}, current[name]); });
+  groups.forEach(function(group) {
+    if (!group || typeof group !== 'object' || Array.isArray(group)) throw new Error('Invalid settings group');
+    checkSessionKeys(group, ['name','data']);
+    if (typeof group.name !== 'string' || seen[group.name]) throw new Error('Invalid or duplicate settings group');
+    seen[group.name] = true;
+    if (group.name === 'transforms') {
+      if (!Array.isArray(group.data)) throw new Error('Invalid transform stack');
+      group.data.forEach(function(t) { checkSessionKeys(t, Object.keys(plainTransform())); });
+    } else {
+      if (!Object.prototype.hasOwnProperty.call(current, group.name)) throw new Error('Unknown settings group: ' + group.name);
+      checkSessionKeys(group.data, Object.keys(current[group.name]));
+      Object.keys(group.data).forEach(function(key) { state[group.name][key] = group.data[key]; });
+    }
+  });
+  var dimensions = importedDimensionState(groups);
+  state.transforms = dimensions.transforms;
+  var shape = state.shapeParams, camera = state.cameraParams, material = state.materialParams, transform = state.transformParams;
+  if (seen.shapeParams) {
+    var patch = groups.filter(function(g) {return g.name === 'shapeParams';})[0].data;
+    if (patch.coeff !== undefined && patch.coeffCount === undefined) shape.coeffCount = patch.coeff.length;
+  }
+  var booleanFields = {
+    shapeParams:['editCode','reset','interpolate'],
+    cameraParams:['perspective','wobble','axes','fps'],
+    materialParams:['calcNormals','depthTest','depthWrite','wireframe','coordinates','values','geometry'],
+    transformParams:['invertOrder','pushTransform','popTransform','applyTransforms','popAllOnApply','resetOrientation','popAllTransforms']
+  };
+  Object.keys(current).forEach(function(name) {
+    Object.keys(current[name]).forEach(function(key) {
+      var expected = name === 'cameraParams' && key === 'background' ? 'string' : booleanFields[name].indexOf(key) >= 0 ? 'boolean' : 'number';
+      var actual = state[name][key];
+      // GUI enum controllers serialize their values as numeric strings.
+      var enumKey = name === 'materialParams' && ['material','side','blending','equation'].indexOf(key) >= 0;
+      if (enumKey && typeof actual === 'string' && /^\d+$/.test(actual)) actual = state[name][key] = Number(actual);
+      if (Array.isArray(current[name][key])) {
+        if (!Array.isArray(actual) || !actual.every(Number.isFinite)) throw new Error('Invalid array: ' + key);
+        state[name][key] = actual.slice();
+      } else if (typeof actual !== expected || (expected === 'number' && !Number.isFinite(actual))) throw new Error('Invalid value: ' + key);
+    });
+  });
+  validateNumericSettings(shape, transform, state.transforms);
+  sessionRange(shape.editorWidth,0,100000,'editor width');
+  sessionRange(shape.memoryOveruse,0,1,'memory overhead');
+  if (!Number.isInteger(shape.maxCoeffCount) || shape.maxCoeffCount < 1 || shape.maxCoeffCount > 32 ||
+      !Number.isInteger(shape.coeffCount) || shape.coeffCount < 0 || shape.coeffCount > shape.maxCoeffCount ||
+      shape.coeff.length !== shape.coeffCount) throw new Error('Invalid coefficient count');
+  sessionRange(camera.fov,0.05,179.95,'field of view');
+  if (camera.scale <= 0) throw new Error('Camera scale must be positive');
+  sessionRange(camera.radius,0,10,'camera radius'); sessionRange(camera.speed,0,10,'camera speed');
+  if (!/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(camera.background)) throw new Error('Invalid background color');
+  var enums = {material:[0,1,3,4,5],side:[0,1,2],blending:[0,1,2,3,4,5],equation:[0,100,101,102,103,104]};
+  Object.keys(enums).forEach(function(key) { if (enums[key].indexOf(material[key]) < 0) throw new Error('Invalid material ' + key); });
+  if (material.equation === 0) material.equation = 100; // Original startup value.
+  sessionRange(material.opacity,0,1,'opacity');
+  var matrix = legacy ? numeric.identity(dimensions.dimensions+1) : saved.baseOrientation;
+  if (!Array.isArray(matrix) || matrix.length !== dimensions.dimensions+1 || !matrix.every(function(row) {
+    return Array.isArray(row) && row.length === dimensions.dimensions+1 && row.every(Number.isFinite);
+  })) throw new Error('Invalid base orientation');
+  state.baseOrientation = matrix.map(function(row) {return row.slice();});
+  state.activeFieldSource = legacy ? null : saved.activeFieldSource;
+  if (state.activeFieldSource !== null) {
+    if (typeof state.activeFieldSource !== 'string') throw new Error('Invalid function source');
+    new Function('x','c',state.activeFieldSource);
+  }
+  state.groups = groups;
+  return state;
+}
+function checkSessionKeys(object, allowed) {
+  if (!object || typeof object !== 'object' || Array.isArray(object)) throw new Error('Expected settings object');
+  Object.keys(object).forEach(function(key) {
+    if (key === '__proto__' || key === 'prototype' || key === 'constructor' || allowed.indexOf(key) < 0) throw new Error('Unknown settings field: ' + key);
+  });
+}
+function sessionRange(value, min, max, name) {
+  if (!Number.isFinite(value) || value < min || value > max) throw new Error('Invalid ' + name);
+}
+
 // Validate before mutating live state. Retained transforms are resized when the
 // dimension changes; explicitly imported transforms must already be consistent.
 function importedDimensionState(groups) {
@@ -39,71 +128,31 @@ function exportToJSON() {
 var foo;
 
 function merge(a, b) {
-  for (var i in b) {
-    a[i] = b[i];
-  }
+  Object.keys(b).forEach(function(key) { a[key] = b[key]; });
 }
 
 function importFromJSON() {
-  var inString = window.prompt("Paste JSON, Enter.", '');
-  if (inString === null) return;
-  var saved = JSON.parse(inString);
-  if (!Array.isArray(saved) && (!saved || saved.version !== 1 || !Array.isArray(saved.groups))) throw new Error('Unsupported session format');
-  foo = Array.isArray(saved) ? saved : saved.groups;
-  var dimensionState = importedDimensionState(foo);
-  var candidateShape = Object.assign({}, shapeParams);
-  var candidateTransform = Object.assign({}, transformParams);
-  foo.forEach(function(group) {
-    if (group.name === 'shapeParams') Object.assign(candidateShape, group.data);
-    if (group.name === 'transformParams') Object.assign(candidateTransform, group.data);
-  });
-  validateNumericSettings(candidateShape, candidateTransform, dimensionState.transforms);
-  var dimensions = dimensionState.dimensions;
-  foo.forEach(function(group) {
-   if (group.name == 'shapeParams' && group.data.dimensions !== undefined) dimensions = group.data.dimensions;
-  });
-  if (!Number.isInteger(dimensions) || dimensions < 3) throw new Error('Invalid dimensions');
-  var matrix = Array.isArray(saved) ? numeric.identity(dimensions+1) : saved.baseOrientation;
-  if (!Array.isArray(matrix) || matrix.length !== dimensions+1 || !matrix.every(function(row) {
-   return Array.isArray(row) && row.length === dimensions+1 && row.every(Number.isFinite);
-  })) throw new Error('Invalid base orientation');
-  var source = Array.isArray(saved) ? null : saved.activeFieldSource;
-  if (source !== null && typeof source != 'string') throw new Error('Invalid function source');
-  if (source !== null) new Function('x','c',source); // Syntax check before changing state.
+  var text = window.prompt("Paste JSON, Enter.", '');
+  if (text === null) return false;
+  try { importSettings(text); return true; }
+  catch (error) { window.alert('Could not import settings: ' + error.message); return false; }
+}
 
-  
-  for (var i in foo) {
-    var group = foo[i];
-    switch (group.name) {
-      case 'shapeParams':
-        merge(shapeParams, group.data);
-      break;
-      case 'cameraParams':
-        merge(cameraParams, group.data);
-      break;
-      case 'materialParams':
-        merge(materialParams, group.data);
-      break;
-      case 'transformParams':
-        merge(transformParams, group.data);
-      break;
-      case 'transforms':
-        transforms = group.data.slice();
-      break;
-    }
-  }
-  n = dimensionState.dimensions;
-  shapeParams.dimensions = n;
-  transforms = dimensionState.transforms;
-  shapeParams.coeffCount = shapeParams.coeff.length;
+function importSettings(text) {
+  var state = prepareSession(text);
+  merge(shapeParams, state.shapeParams);
+  merge(cameraParams, state.cameraParams);
+  merge(materialParams, state.materialParams);
+  merge(transformParams, state.transformParams);
+  n = shapeParams.dimensions;
+  transforms = state.transforms;
+  baseOrientation = state.baseOrientation;
+  activeFieldSource = state.activeFieldSource;
+  foo = state.groups;
   for (var k=0; k<shapeParams.coeff.length; k++) cachedCoeff[k] = shapeParams.coeff[k];
-  baseOrientation = matrix.map(function(row) {return row.slice();});
-  activeFieldSource = source;
-  // Replace the editor draft too, so the visible session matches the restored one.
   myCodeMirror.off('beforeChange', beforeChangeCallback);
-  myCodeMirror.setValue(source === null ? defaultText() : 'function field(x, c, size3, n) {\n' + source + '\n}');
+  myCodeMirror.setValue(activeFieldSource === null ? defaultText() : 'function field(x, c, size3, n) {\n' + activeFieldSource + '\n}');
   myCodeMirror.on('beforeChange', beforeChangeCallback);
-
   resetWorker(shapeParams.resolution);
   updateMaterial();
   updateBackground();
