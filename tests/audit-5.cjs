@@ -34,3 +34,21 @@ const faces=new Uint32Array(w.faceBuffer,0,w.activeIndexCount);
 for(const i of faces)assert(i<w.activeVertexCount);
 let reply;w.postMessage=data=>reply=data;w.reply(0);
 assert.equal(reply.vertexCount,w.activeVertexCount);assert.equal(reply.indexCount,w.activeIndexCount);
+
+// Odd triangle counts yield a six-byte Uint16 upload: never recycle that as
+// Uint32 storage. Keep/reuse the original worker transfer buffer instead.
+c.document={};c.title='IsoVis';c.waitingForWebWorker=Array(8).fill(false);
+c.vertexBuffer=[];c.faceBuffer=[];c.normalBuffer=[];c.theBoundingSphere={};c.myMaterial=new c.THREE.MeshBasicMaterial();
+c.meshes=Array.from({length:8},()=>{const g=new c.THREE.BufferGeometry();
+ g.addAttribute('position',new c.THREE.BufferAttribute(new Float32Array(9),3));
+ g.addAttribute('normal',new c.THREE.BufferAttribute(new Float32Array(9),3));
+ g.setIndex(new c.THREE.BufferAttribute(new Uint16Array([0,1,2]),1));return new c.THREE.Mesh(g);});
+vm.runInContext('resetScenes=function() {}; updateSceneMesh=function() {}; dispatchPendingWork=function() {};',c);
+let previous;
+for(let i=0;i<3;i++) {
+ const faces=new Uint32Array([0,1,2]);
+ c.handleWorkerMessage({data:{num:0,vertexCount:3,indexCount:3,buffers:[new Float32Array(9).buffer,faces.buffer,new Float32Array(9).buffer]}});
+ assert.equal(c.meshes[0].geometry.index.array.byteLength,6);
+ if(previous)assert.equal(c.faceBuffer[0],previous);
+ assert.doesNotThrow(()=>new Uint32Array(c.faceBuffer[0]));previous=faces.buffer;
+}
