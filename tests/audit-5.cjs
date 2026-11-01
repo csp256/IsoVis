@@ -13,19 +13,18 @@ const worker = () => {
  return c;
 };
 
-const c=context();load(c,'lib/three.min.js');load(c,'js/workerInterface.js');
-function sample(count,extension) {
- c.renderer={extensions:{get:()=>extension}};
+const c=context();c.THREE=require('../lib/three-r187/three.module.js');load(c,'js/workerInterface.js');
+function sample(count) {
+ c.renderer={extensions:{get(){throw Error('WebGL1 extension must not be queried');}}};
  const p=new Float32Array(count*3);p.set([1,2,3],(count-1)*3);
  const index=new Uint32Array([0,1,count-1,123,456,789]);
  const data={vertexCount:count,indexCount:3,buffers:[p.buffer,index.buffer,new Float32Array(count*3).buffer]};
  const g=c.surfaceGeometry(data); assert.equal(g.drawRange.count,3);
  if(count<=65535)assert.equal(g.index.array.BYTES_PER_ELEMENT,2);
- else if(extension)assert.equal(g.index.array.BYTES_PER_ELEMENT,4);
- else {assert.equal(g.index,null);assert.deepEqual(Array.from(g.attributes.position.array.slice(6)),[1,2,3]);}
+ else assert.equal(g.index.array.BYTES_PER_ELEMENT,4);
  if(g.index)assert.deepEqual(Array.from(g.index.array),[0,1,count-1]);
 }
-sample(3,false);sample(70000,true);sample(70000,false);
+sample(3);sample(65535);sample(65536);sample(70000);
 const w=worker();w.setup(5,3,0);w.vertexBuffer=new ArrayBuffer(4);w.faceBuffer=new ArrayBuffer(4);w.normalBuffer=new ArrayBuffer(4);
 for(let i=0;i<w.size3;i++)w.values[i]=w.points[i*3]-2;
 w.marchingCubes(w.points,w.values,0,true,false,0,0.5);
@@ -40,8 +39,8 @@ assert.equal(reply.vertexCount,w.activeVertexCount);assert.equal(reply.indexCoun
 c.document={};c.title='IsoVis';c.waitingForWebWorker=Array(8).fill(false);
 c.vertexBuffer=[];c.faceBuffer=[];c.normalBuffer=[];c.theBoundingSphere={};c.myMaterial=new c.THREE.MeshBasicMaterial();
 c.meshes=Array.from({length:8},()=>{const g=new c.THREE.BufferGeometry();
- g.addAttribute('position',new c.THREE.BufferAttribute(new Float32Array(9),3));
- g.addAttribute('normal',new c.THREE.BufferAttribute(new Float32Array(9),3));
+ g.setAttribute('position',new c.THREE.BufferAttribute(new Float32Array(9),3));
+ g.setAttribute('normal',new c.THREE.BufferAttribute(new Float32Array(9),3));
  g.setIndex(new c.THREE.BufferAttribute(new Uint16Array([0,1,2]),1));return new c.THREE.Mesh(g);});
 vm.runInContext('resetScenes=function() {}; updateSceneMesh=function() {}; dispatchPendingWork=function() {};',c);
 let previous;

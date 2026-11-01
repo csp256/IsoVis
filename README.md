@@ -6,14 +6,30 @@ Create higher dimensional shapes in a web browser.
 ## Run locally
 
 Download or clone this repository, keeping `IsoVis.html`, `js/`, `lib/`, and
-`css/` together. Open **IsoVis.html** in Chrome (Ctrl+O / Cmd+O, or drag it into
-a window). The app is plain browser JavaScript + Three.js: **no Node, Bun,
-package installation, compilation, or build step is required to use it**.
+`css/` together. Serve the folder over local HTTP, for example:
 
-Chrome is the primary verification target. Other browsers and browser policies
-may differ, especially for local files, Web Workers and large meshes. There is
-no maintained hosted demo linked here; the old RawGit link has been removed.
-The default branch is `main`.
+```sh
+python3 -m http.server 8000 --bind 127.0.0.1
+```
+
+Open http://127.0.0.1:8000/IsoVis.html in Chrome. On systems where Python is
+named `python`, use that command instead. Any static HTTP server works; Bun's
+optional `bun bench/serve.cjs` also serves the app at port 8080.
+
+The app is plain browser JavaScript + pinned Three.js r187 ES modules:
+**no Node, Bun, package installation, compilation, or build step is required
+to use it** (the local server can be Python or any existing server).
+Direct `file://` opening is no longer supported because browsers restrict ES
+module loading. All libraries are local; no CDN or network fetch is required
+once the files are downloaded.
+
+**WebGL2 and browser import-map support are required.** There is no CanvasRenderer
+or WebGL1 fallback. If WebGL2 is unavailable, an explanatory startup banner appears
+before workers are created. Chrome is the primary verification target; other
+browsers/devices have not been validated. The default branch is `main`.
+See [the Three.js migration notes](docs/threejs-upgrade.md) for compatibility,
+visual comparisons, and measurement limits. The previous r73 app remains in Git
+at `23dc808140f973125b929bfec71bcae613ada32d` if an older device needs it.
 
 ### Tests and maintenance
 

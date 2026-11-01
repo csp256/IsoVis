@@ -14,12 +14,12 @@ const worker = () => {
 
 const c=context({myMaterial:undefined, document:{}, title:'IsoVis', waitingForWebWorker:Array(8).fill(false),
  vertexBuffer:[],faceBuffer:[],normalBuffer:[],resetScenes(){},theBoundingSphere:{}});
-load(c,'lib/three.min.js'); load(c,'js/workerInterface.js');load(c,'js/isovis.js');
+c.THREE=require('../lib/three-r187/three.module.js'); load(c,'js/workerInterface.js');load(c,'js/isovis.js');
 vm.runInContext('resetScenes = function() {}; updateSceneMesh = function() {};',c);c.meshes=Array.from({length:8},()=>new c.THREE.Mesh(new c.THREE.BufferGeometry()));
 let disposed=0;
-c.meshes.forEach(m=>{m.geometry.addAttribute('position',new c.THREE.BufferAttribute(new Float32Array(3),3));
+c.meshes.forEach(m=>{m.geometry.setAttribute('position',new c.THREE.BufferAttribute(new Float32Array(3),3));
  m.geometry.setIndex(new c.THREE.BufferAttribute(new Float32Array(3),3));
- m.geometry.addAttribute('normal',new c.THREE.BufferAttribute(new Float32Array(3),3));});
+ m.geometry.setAttribute('normal',new c.THREE.BufferAttribute(new Float32Array(3),3));});
 for(let j=0;j<16;j++) {const m=c.meshes[j%8], old=m.geometry, buffer=old.attributes.position.array.buffer;
  old.addEventListener('dispose',()=>disposed++);
  c.handleWorkerMessage({data:{num:j%8,vertexCount:1,indexCount:3,buffers:[new ArrayBuffer(12),new ArrayBuffer(12),new ArrayBuffer(12)]}});
