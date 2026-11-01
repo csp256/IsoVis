@@ -51,7 +51,7 @@ function handleWorkerMessage(e) {
 		document.title = title;
 		console.timeEnd("All Workers");
 	}
-	resetScenes();
+	updateSceneMesh(octant, m);
 }
 
 function initWorkers() {
