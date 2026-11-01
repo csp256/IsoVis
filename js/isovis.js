@@ -105,8 +105,7 @@ function init() {
 }
 
 function resetScenes() {
-	// I should do this in a smarter way.
-	// This function is called for each message from worker...
+	if (typeof scenes != 'undefined' && scenes.length == 8) return;
 	this.scenes = [];
 	for (var k=0; k<8; k++) {
 		scenes.push( new THREE.Scene() );
@@ -115,6 +114,15 @@ function resetScenes() {
 		}
 		scenes[k].add(meshes[k]);
 	}
+}
+
+function updateSceneMesh(octant, mesh) {
+	var target = scenes[octant];
+	// Lights are permanent; only the previous surface belongs to this slot.
+	for (var i=target.children.length-1; i>=0; i--) {
+		if (target.children[i] instanceof THREE.Mesh) target.remove(target.children[i]);
+	}
+	target.add(mesh);
 }
 
 function updateMaterial() {
