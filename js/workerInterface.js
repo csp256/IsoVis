@@ -129,7 +129,7 @@ function handleWorkerMessage(e) {
   return;
  }
 	vertexBuffer[octant] = meshes[octant].geometry.attributes.position.array.buffer;
-	faceBuffer[octant] = meshes[octant].geometry.index ? meshes[octant].geometry.index.array.buffer : new ArrayBuffer(4);
+	faceBuffer[octant] = meshes[octant].userData.faceBuffer || new ArrayBuffer(4);
 	normalBuffer[octant] = meshes[octant].geometry.attributes.normal.array.buffer;
 
 	// meshes[octant].geometry.addAttribute( 'position', new THREE.BufferAttribute( new Float32Array(e.data.buffers[0]), 3 ) );
@@ -140,6 +140,8 @@ function handleWorkerMessage(e) {
 	var buffGeom = surfaceGeometry(e.data);
 	buffGeom.boundingSphere = theBoundingSphere; // This is just to suppress error messages; has no other purpose.
 	var m = new THREE.Mesh( buffGeom, myMaterial );
+	// Keep the transfer-format buffer separate from the Uint16 GPU upload.
+	m.userData.faceBuffer = e.data.buffers[1];
 	meshes[octant] = m;
 	oldGeometry.dispose();
 	waitingForWebWorker[octant] = false;
