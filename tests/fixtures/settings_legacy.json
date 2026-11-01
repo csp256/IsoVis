@@ -1,0 +1,98 @@
+[
+  {
+    "name": "shapeParams",
+    "data": {
+      "editCode": false,
+      "editorWidth": 340,
+      "resolution": 30,
+      "reset": false,
+      "dimensions": 5,
+      "memoryOveruse": 0.5,
+      "iso": 5,
+      "parameters": [],
+      "interpolate": true,
+      "maxCoeffCount": 32,
+      "coeffCount": 6,
+      "coeff": [
+        3.5,
+        3,
+        1.5,
+        3,
+        -1,
+        2
+      ]
+    }
+  },
+  {
+    "name": "cameraParams",
+    "data": {
+      "perspective": true,
+      "fov": 50,
+      "scale": 1,
+      "wobble": true,
+      "radius": 1,
+      "speed": 1,
+      "axes": true,
+      "background": "#001122",
+      "fps": true
+    }
+  },
+  {
+    "name": "materialParams",
+    "data": {
+      "calcNormals": true,
+      "material": 4,
+      "opacity": 0.15,
+      "side": 0,
+      "blending": 2,
+      "equation": 0,
+      "depthTest": false,
+      "depthWrite": false,
+      "wireframe": true,
+      "coordinates": true,
+      "values": true,
+      "geometry": true
+    }
+  },
+  {
+    "name": "transformParams",
+    "data": {
+      "zoom": 1.4,
+      "invertOrder": false,
+      "pushTransform": false,
+      "popTransform": false,
+      "applyTransforms": false,
+      "popAllOnApply": true,
+      "resetOrientation": false,
+      "popAllTransforms": false
+    }
+  },
+  {
+    "name": "transforms",
+    "data": [
+      {
+        "type": "0",
+        "axis1": 0,
+        "axis2": 0,
+        "degrees": 0,
+        "s": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "d": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "row": 0,
+        "col": 1,
+        "shear": 0
+      }
+    ]
+  }
+]

@@ -11,7 +11,7 @@ From the repository root, run all tests in this checkout sequentially:
 bun tests/run.cjs
 ```
 
-Individual `tests/audit-<finding>.cjs` files can also be run directly with Bun.
+Individual `tests/audit_<finding>.cjs` files can also be run directly with Bun.
 Fixtures are small and there are no parallel test workers. VM tests substitute
 browser APIs; they do not claim browser rendering or performance coverage.
 
@@ -28,12 +28,17 @@ or GPU is required for `bun tests/run.cjs`.
 For installed desktop Chrome only, optional sequential checks are available:
 
 ```sh
-bun tests/browser-smoke.mjs
-bun tests/browser-smoke.mjs --unsupported
+bun tests/browser_smoke.mjs
+bun tests/browser_smoke.mjs --unsupported
 ```
 
 These launch a temporary headless Chrome with software SwiftShader and a local
 server. Set `--chrome "path/to/chrome"` or `CHROME_PATH` if necessary. They are
 not run automatically in CI and are not hardware-GPU benchmarks. See
-[the migration notes](../docs/threejs-upgrade.md) for visual/performance reports,
+[the migration notes](../docs/threejs_upgrade.md) for visual/performance reports,
 comparison commands, coverage and important support changes.
+
+Naming cleanup fixtures additionally cover pre-rename JSON envelopes/group arrays,
+stable external export keys, opaque user field source and duplicate aliases.
+`audit_naming.cjs` guards first-party filenames and basic declarations without
+adding parser/linter packages. See [naming conventions](../docs/naming.md).

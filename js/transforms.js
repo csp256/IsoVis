@@ -1,5 +1,5 @@
 // Pure preparation used by GUI changes and imported sessions. No live mutation.
-function normalizedTransformStack(stack, dimensions, explicitStack) {
+function normalized_transform_stack(stack, dimensions, explicit_stack) {
  if (!Number.isInteger(dimensions) || dimensions < 3) throw new Error('Dimensions must be an integer of at least 3');
  if (!Array.isArray(stack)) throw new Error('Invalid transform stack');
  stack = stack.map(function(t) {
@@ -7,12 +7,12 @@ function normalizedTransformStack(stack, dimensions, explicitStack) {
   var result = {};
   Object.keys(t).forEach(function(key) { result[key] = t[key]; });
   ['axis1','axis2','row','col'].forEach(function(key) {
-   if (!Number.isInteger(t[key]) || t[key] < 0 || (explicitStack && t[key] >= dimensions)) throw new Error('Invalid transform axis');
+   if (!Number.isInteger(t[key]) || t[key] < 0 || (explicit_stack && t[key] >= dimensions)) throw new Error('Invalid transform axis');
    result[key] = Math.min(t[key], dimensions-1);
   });
   ['degrees','shear'].forEach(function(key) { if (!Number.isFinite(t[key])) throw new Error('Invalid transform value'); });
   ['s','d'].forEach(function(key) {
-   if (!Array.isArray(t[key]) || !t[key].every(Number.isFinite) || (explicitStack && t[key].length !== dimensions)) throw new Error('Invalid transform vector');
+   if (!Array.isArray(t[key]) || !t[key].every(Number.isFinite) || (explicit_stack && t[key].length !== dimensions)) throw new Error('Invalid transform vector');
    result[key] = Array.from({length:dimensions}, function(_,i) { return i<t[key].length ? t[key][i] : key=='s' ? 1 : 0; });
   });
   if (result.s.some(function(x) {return x===0;})) throw new Error('Scale cannot be zero');
@@ -21,48 +21,48 @@ function normalizedTransformStack(stack, dimensions, explicitStack) {
  return stack;
 }
 
-function invertOrder() {
+function invert_order() {
 	transforms.reverse();
-	setCoordsDirty();
-	buildRightGUI();
+	set_coords_dirty();
+	build_right_gui();
 }
-function pushTransform() {
-	transformParams.pushTransform = false;
-	transforms.push( plainTransform() );
-	buildRightGUI();
+function push_transform() {
+	transform_params.push_transform = false;
+	transforms.push( plain_transform() );
+	build_right_gui();
 }
-function popTransform() {
-	transformParams.popTransform = false;
+function pop_transform() {
+	transform_params.pop_transform = false;
 	transforms.pop();
-	buildRightGUI();
-	setCoordsDirty();
+	build_right_gui();
+	set_coords_dirty();
 }
-function applyTransforms() {
-	transformParams.applyTransforms = false;
-	baseOrientation = numeric.dot(baseOrientation, computeTransform());
-	if (transformParams.popAllOnApply) {
-		popAllTransforms();
+function apply_transforms() {
+	transform_params.apply_transforms = false;
+	base_orientation = numeric.dot(base_orientation, compute_transform());
+	if (transform_params.pop_all_on_apply) {
+		pop_all_transforms();
 	} else {
 		// Keep the stack slots, but consume their transforms after baking them.
-		for (var k=0; k<transforms.length; k++) transforms[k] = plainTransform();
-		buildRightGUI();
+		for (var k=0; k<transforms.length; k++) transforms[k] = plain_transform();
+		build_right_gui();
 	}
-	setCoordsDirty();
+	set_coords_dirty();
 }
-function resetOrientation() {
-	transformParams.resetOrientation = false;
-	baseOrientation = numeric.identity(n+1);
-	setCoordsDirty();
+function reset_orientation() {
+	transform_params.reset_orientation = false;
+	base_orientation = numeric.identity(n+1);
+	set_coords_dirty();
 }
 
-function popAllTransforms() {
-	transformParams.popAllTransforms = false;
+function pop_all_transforms() {
+	transform_params.pop_all_transforms = false;
 	transforms = [];
-	pushTransform();
-	setCoordsDirty();
+	push_transform();
+	set_coords_dirty();
 }
 
-function plainTransform() {
+function plain_transform() {
   var out = {
 		type: "0", // 0 rotation, 1 scale, 2 translation, 3 shear
 
@@ -85,38 +85,38 @@ function plainTransform() {
 	return out;
 }
 
-function computeTransform() {
-	var R = numeric.identity(n+1); // Passive inverse transformation formulation
+function compute_transform() {
+	var r = numeric.identity(n+1); // Passive inverse transformation formulation
 	for (i=0; i<transforms.length; i++) {
-		var P = numeric.identity(n+1);
+		var p = numeric.identity(n+1);
 		switch (transforms[i].type) {
 			case "0":
 				if (transforms[i].axis1 != transforms[i].axis2) {
 					var theta = transforms[i].degrees * Math.PI / 180;
 					var c = Math.cos(theta);
 					var s = Math.sin(theta);
-					P[transforms[i].axis1][transforms[i].axis1] = c;
-					P[transforms[i].axis2][transforms[i].axis2] = c;
-					P[transforms[i].axis1][transforms[i].axis2] = s;
-					P[transforms[i].axis2][transforms[i].axis1] = -s;
+					p[transforms[i].axis1][transforms[i].axis1] = c;
+					p[transforms[i].axis2][transforms[i].axis2] = c;
+					p[transforms[i].axis1][transforms[i].axis2] = s;
+					p[transforms[i].axis2][transforms[i].axis1] = -s;
 				}
 			break;
 			case "1":
-				for (var k=0; k<n; k++) P[k][k] = 1/transforms[i].s[k];
+				for (var k=0; k<n; k++) p[k][k] = 1/transforms[i].s[k];
 			break;
 			case "2":
-				for (var k=0; k<n; k++) P[k][n] = -transforms[i].d[k];
+				for (var k=0; k<n; k++) p[k][n] = -transforms[i].d[k];
 			break;
 			case "3":
-				P[transforms[i].row][transforms[i].col] = transforms[i].shear;
+				p[transforms[i].row][transforms[i].col] = transforms[i].shear;
 			break;
 			default:
 		}
-		R = numeric.dot(R,P);
+		r = numeric.dot(r,p);
 	}
-	return R;
+	return r;
 }
-function computeFullTransform() {
-	validateNumericSettings(shapeParams, transformParams, transforms);
-	return numeric.mul(1/transformParams.zoom, numeric.dot(baseOrientation, computeTransform()));
+function compute_full_transform() {
+	validate_numeric_settings(shape_params, transform_params, transforms);
+	return numeric.mul(1/transform_params.zoom, numeric.dot(base_orientation, compute_transform()));
 }
