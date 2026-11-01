@@ -28,3 +28,5 @@ assert.throws(()=>c.computeFullTransform(),/Zoom/);
 // Dispatch failure never sends buffers or leaves a busy request.
 load(c,'js/workerInterface.js');vm.runInContext('reportWorkerError=function(){errors++;};',c);c.waitingForWebWorker=Array(8).fill(false);c.workers=[];
 c.talkToWorker('geometry');assert.equal(vm.runInContext('pendingWorkerStage',c),null);assert(c.waitingForWebWorker.every(x=>!x));assert.equal(c.errors,3);
+
+vm.runInContext('workersNeedInit=true;',c);c.talkToWorker('geometry');assert.equal(vm.runInContext('workersNeedInit',c),true);
