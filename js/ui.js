@@ -23,6 +23,7 @@ function buildLeftGUI() {
 }
 
 function updateCoeff() {
+  setScalarFieldDirty();
   while (shapeParams.coeff.length < shapeParams.coeffCount) {
     shapeParams.coeff.push(cachedCoeff[shapeParams.coeff.length]);
   }
