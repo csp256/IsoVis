@@ -165,9 +165,8 @@ function updateMaterial() {
 function animate() {
 	cameraWobble();
 	render();
-	if (makingGIF && !waitingForAnyWebWorker() && !waitingForNextFrame) {
-		setTimeout(makeGIF(), 2000); // this call will need to save a PNG out, apply an xform, then talk to WW's.
-	}
+	if (makingGIF && doneWithGIF) stopGIF();
+	else if (makingGIF && !waitingForAnyWebWorker()) scheduleGIFCapture();
 	cameraUnwobble();
 	update();
 	requestAnimationFrame( animate );
