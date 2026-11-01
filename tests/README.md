@@ -1,44 +1,57 @@
 # Regression tests
 
-The app remains plain browser JavaScript, with no build or install step.
-Tests need only [Bun](https://bun.sh/); Node is not required. They use Bun's
-built-in Node-compatible assertion, file, and VM APIs, with no third-party
-packages, package manifest, or lockfile.
+The browser app still needs no install or build step: emitted JavaScript is
+committed. Development now uses Just, Bun, and uv, with one pinned development
+package (TypeScript). No Node runtime is needed.
 
-From the repository root, run all tests in this checkout sequentially:
+From the repository root:
 
 ```sh
-bun tests/run.cjs
+just deps
+just check
 ```
 
-Individual `tests/audit_<finding>.cjs` files can also be run directly with Bun.
-Fixtures are small and there are no parallel test workers. VM tests substitute
-browser APIs; they do not claim browser rendering or performance coverage.
+`just check` runs strict checking for the migrated TypeScript and compile-only
+type fixtures, checks generated JS against a fresh temporary compilation, then
+runs small regression fixtures sequentially. `just build` regenerates browser
+output after editing `src/*.ts`. See [the migration guide](../docs/typescript.md)
+for the exact coverage, global/ambient boundaries, and remaining unchecked code.
 
-The regression workflow runs the same command on pull requests and pushes to
-`main`, using pinned Bun 1.4.4 and read-only repository permissions. No browser
-benchmark runs in CI. A failing assertion fails the job.
+`just test` runs only the VM/offline tests. Individual `tests/audit_<finding>.cjs`
+files can also be run directly with Bun. Tests use Bun's built-in Node-compatible
+assertion, file, and VM APIs. There are no parallel test workers. VM tests
+substitute browser APIs; they do not claim browser rendering or performance
+coverage. The naming guard skips installed third-party dependencies.
 
-## Optional real-browser migration checks
+The regression workflow runs `just deps` and `just check` on Linux and Windows
+for pull requests and pushes to `main`, with pinned tool versions/actions and
+read-only repository permissions. A failing compiler, stale output, or failing
+assertion fails the job. No browser benchmark runs in CI.
+
+## Optional real-browser checks
 
 The Three.js migration adds offline upstream checksum/capability tests and
 updates geometry/control fixtures to the actual pinned r187 modules. No browser
-or GPU is required for `bun tests/run.cjs`.
+or GPU is required for `just check`.
 
-For installed desktop Chrome only, optional sequential checks are available:
+For installed desktop Chrome only:
 
 ```sh
-bun tests/browser_smoke.mjs
-bun tests/browser_smoke.mjs --unsupported
+just browser_test
+just visual
 ```
 
-These launch a temporary headless Chrome with software SwiftShader and a local
-server. Set `--chrome "path/to/chrome"` or `CHROME_PATH` if necessary. They are
-not run automatically in CI and are not hardware-GPU benchmarks. See
-[the migration notes](../docs/threejs_upgrade.md) for visual/performance reports,
-comparison commands, coverage and important support changes.
+These launch temporary headless Chrome with software SwiftShader and a local
+server. Set `CHROME_PATH` if necessary. They are not run automatically in CI and
+are not hardware-GPU benchmarks. See [the Three.js migration notes](../docs/threejs_upgrade.md)
+for the historical reports, comparison flags, and support changes. `just visual`
+emits the established image fixtures for comparison, not a self-validating image
+baseline test. Use `just visual_report path/to/visual.json` to retain PNG data,
+or `just benchmark_report path/to/benchmark.json` for a full benchmark report.
 
-Naming cleanup fixtures additionally cover pre-rename JSON envelopes/group arrays,
-stable external export keys, opaque user field source and duplicate aliases.
-`audit_naming.cjs` guards first-party filenames and basic declarations without
-adding parser/linter packages. See [naming conventions](../docs/naming.md).
+Naming cleanup fixtures cover pre-rename JSON envelopes/group arrays, stable
+external export keys, opaque user field source and duplicate aliases.
+`audit_naming.cjs` guards first-party filenames and basic declarations without a
+parser/linter dependency. See [naming conventions](../docs/naming.md).
+`audit_typescript.cjs` covers generated-script strict mode, explicit settings
+initialization, transform loop isolation, and retained runtime input checks.

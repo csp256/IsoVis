@@ -14,7 +14,7 @@ python3 -m http.server 8000 --bind 127.0.0.1
 
 Open http://127.0.0.1:8000/isovis.html in Chrome. On systems where Python is
 named `python`, use that command instead. Any static HTTP server works; Bun's
-optional `bun bench/serve.cjs` also serves the app at port 8080.
+optional `just bench_serve` also serves the app at port 8080.
 
 The app is plain browser JavaScript + pinned Three.js r187 ES modules:
 **no Node, Bun, package installation, compilation, or build step is required
@@ -33,9 +33,22 @@ at `23dc808140f973125b929bfec71bcae613ada32d` if an older device needs it.
 
 ### Tests and maintenance
 
-Contributors can optionally install [Bun](https://bun.sh/) and run
-`bun tests/run.cjs` from the repository root. Tests use small sequential fixtures
-without third-party dependencies. See [tests/README.md](tests/README.md).
+For development, install [Just](https://just.systems/), [Bun](https://bun.sh/)
+and [uv](https://docs.astral.sh/uv/), then run from the repository root:
+
+```sh
+just deps
+just check
+```
+
+Settings and transforms are now authored in `src/*.ts`, with strict TypeScript
+checking. After editing them, run `just build` and commit the generated browser
+JavaScript too. The rest of the app is not type-checked yet. See the
+[TypeScript migration guide](docs/typescript.md) and [tests/README.md](tests/README.md)
+for scope and verification details.
+
+Run `just` to list commands, or `just serve` to serve the app locally. Windows
+does not require Bash or a separately managed Python installation.
 
 Correctness smoke tests and stable resource counters are not performance
 benchmarks. Compare representative workloads, normals enabled/disabled, and

@@ -34,3 +34,7 @@ Icon
 # Files that might appear on external disk
 .Spotlight-V100
 .Trashes
+
+# Development dependencies; emitted browser JS stays committed.
+node_modules/
+__pycache__/

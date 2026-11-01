@@ -2,8 +2,8 @@
 
 - First-party variables, functions, object properties, worker protocol fields,
   DOM IDs and filenames use `snake_case`.
-- Types/classes use `CamelCase`. There are no new application types introduced
-  by the naming cleanup; native/imported types keep their library spellings.
+- Types/classes/interfaces use `CamelCase`, including the new TypeScript types.
+  Native/imported types keep their library spellings.
 - Existing one-word names and numeric suffixes (`field`, `n`, `size3`, `axis1`)
   need no extra underscores. Acronyms are lowercase (`get_url_resolution`).
 - Conventional repository filenames (`README.md`, `LICENSE`, dotfiles and GitHub
@@ -38,7 +38,7 @@ measurements with the matching historical driver, rather than current globals.
 
 ## Verification
 
-Run `bun tests/run.cjs`. The filename/basic-declaration guard is deliberately
+Run `just check` (after `just deps`). The filename/basic-declaration guard is deliberately
 small and dependency-free, not a full JavaScript parser/linter. Tests also cover
 legacy JSON, stable export key sets, unchanged user code, duplicate-alias and
 prototype-key rejection, and the real worker executing a historical field body.
@@ -46,10 +46,9 @@ prototype-key rejection, and the real worker executing a historical field body.
 Optional installed-Chrome checks:
 
 ```sh
-bun tests/browser_smoke.mjs
-bun tests/browser_smoke.mjs --unsupported
-bun tests/browser_smoke.mjs --visual --report visual.json
-bun tests/browser_smoke.mjs --benchmark --report benchmark.json
+just browser_test
+just visual_report visual.json
+just benchmark_report benchmark.json
 ```
 
 The new entry point is `isovis.html`, not `IsoVis.html` (case matters on Linux).

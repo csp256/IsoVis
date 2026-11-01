@@ -5,7 +5,7 @@ bundler, npm package, or build step is involved. Serve the repository over local
 HTTP with any static server; with Bun, from the root:
 
 ```sh
-bun bench/serve.cjs
+just bench_serve
 ```
 
 Open http://127.0.0.1:8080/bench/index.html in Chrome. Fill the revision label and

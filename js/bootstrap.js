@@ -1,5 +1,5 @@
 // A narrow bridge lets the existing plain scripts remain unchanged. Upstream
-// modules are pristine; there is no package manager, CDN, or bundling step.
+// modules are pristine. Committed browser output needs no install or build.
 async function start_iso_vis() {
   try {
     const three = await import('three');

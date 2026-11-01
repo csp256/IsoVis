@@ -25,3 +25,8 @@
 # Upstream indentation is not application formatting policy.
 lib/three-r187/*.js -text -whitespace linguist-vendored
 lib/three-r187/LICENSE -text
+
+# Generated output is byte-checked on Windows as well as Unix.
+js/params.js text eol=lf
+js/transforms.js text eol=lf
+src/*.ts text eol=lf
