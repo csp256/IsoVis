@@ -47,10 +47,18 @@ function updateCoeff() {
 }
 
 function dimensionsChanged() {
+  try {
+    var nextStack = normalizedTransformStack(transforms, shapeParams.dimensions, false);
+  } catch (error) {
+    shapeParams.dimensions = n;
+    reportWorkerError(error.message);
+    buildLeftGUI();
+    return;
+  }
   n = shapeParams.dimensions;
+  transforms = nextStack;
   resetOrientation();
   resetWorker(shapeParams.resolution);
-  buildRightGUI();
 }
 
 function shapeFolder(g) {
