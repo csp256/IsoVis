@@ -167,21 +167,9 @@ function update() {
 	controls.update();
 	stats.update();
 	if (!makingGIF) {
-		if (sizeDirty) {
-			sizeDirty = false;
-			talkToWorker('init');
-		}
-		if (coordsDirty) {
-			coordsDirty = false;
-			talkToWorker('coords');
-		}
-		if (scalarFieldDirty) {
-			scalarFieldDirty = false;
-			talkToWorker('scalarField');
-		}
-		if (meshDirty) {
-			meshDirty = false;
-			talkToWorker('geometry');
+		var request = sizeDirty ? 'init' : coordsDirty ? 'coords' : scalarFieldDirty ? 'scalarField' : meshDirty ? 'geometry' : null;
+		if (request && talkToWorker(request)) {
+			sizeDirty = coordsDirty = scalarFieldDirty = meshDirty = false;
 		}
 	}
 }
