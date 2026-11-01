@@ -16,7 +16,7 @@ function init() {
 	for (var i=0;i<8;i++) {
 		var g = new THREE.BufferGeometry()
 		g.addAttribute( 'position', new THREE.BufferAttribute( new Float32Array(0,0,0), 3 ) );
-		g.setIndex(  new THREE.BufferAttribute( new Float32Array(0,0,0),3));
+		g.setIndex(  new THREE.BufferAttribute( new Uint16Array(0),1));
 		g.addAttribute( 'normal', new THREE.BufferAttribute( new Float32Array(0,0,0), 3 ) );
 		meshes[i] = new THREE.Mesh(g);
 	}
