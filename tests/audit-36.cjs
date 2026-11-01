@@ -25,5 +25,5 @@ w.updateFieldFunction({code:'values.fill(c.length);'});w.rebuildScalarField([7],
 const c=context({setScalarFieldDirty(){c.dirty=true;}});load(c,'js/ui.js');
 const folder={closed:false,close(){},open(){},domElement:{parentNode:{parentNode:{removeChild(){}}}},add(){return {onChange(){}};}};
 c.shapeParams={coeff:[1,2,3],coeffCount:1};c.cachedCoeff=[];
-c.leftgui={__folders:{Shape:{__folders:{Coefficients:folder},onResize(){},addFolder(){return folder;}}}};
+c.leftgui={__folders:{Shape:{__folders:{Coefficients:folder},onResize(){},removeFolder(){},addFolder(){return folder;}}}};
 c.updateCoeff();assert.equal(c.dirty,true);assert.deepEqual(c.shapeParams.coeff,[1]);
