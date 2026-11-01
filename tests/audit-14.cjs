@@ -12,7 +12,7 @@ const worker = () => {
  return c;
 };
 
-const c=context();load(c,'lib/three.min.js');load(c,'js/isovis.js');
+const c=context();c.THREE=require('../lib/three-r187/three.module.js');load(c,'js/isovis.js');
 c.lights=Array.from({length:8},()=>new c.THREE.PointLight());
 c.meshes=Array.from({length:8},()=>new c.THREE.Mesh());c.resetScenes();
 const scenes=c.scenes.slice(), lights=scenes.map(s=>s.children.slice(0,8));

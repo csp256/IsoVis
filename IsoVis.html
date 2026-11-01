@@ -19,10 +19,10 @@
 		<div id="toolbar"></div>
 
 		<script src="lib/numeric-1.2.6.js"></script>
-		<script src="lib/three.min.js"></script>
-		<script src="lib/Detector.js"></script>
+		<script type="importmap">
+{"imports":{"three":"./lib/three-r187/three.module.js"}}
+		</script>
 		<script src="lib/Stats.js"></script>
-		<script src="lib/OrbitControls.js"></script>
 		<script src="lib/THREEx.KeyboardState.js"></script>
 		<script src="lib/THREEx.FullScreen.js"></script>
 		<script src="lib/THREEx.WindowResize.js"></script>
@@ -40,6 +40,7 @@
 		<script src='js/camera.js'></script>
 		<script src='js/editor.js'></script>
 		<script src='js/exportImport.js'></script>
+		<script src='js/renderer.js'></script>
 		<script src='js/isovis.js'></script>
 
 		<script id='defaultFieldSource'>
@@ -908,16 +909,14 @@ function defaultFieldBody() {
 			// To do: remove all global variables, at least figure out something better.
 			var container, scene, camera, renderer, controls, stats;
 			var keyboard = new THREEx.KeyboardState();
-			var clock = new THREE.Clock();
 			var waitingForWebWorker = [false,false,false,false,false,false,false,false];
 			var title = "IsoVis";
 			var titleBusy = "IsoVis - Busy";
 
-			initParams();
-			init();
-			animate();
+			if (location.protocol === 'file:') showStartupError('Serve this folder over HTTP. Browser ES modules cannot load reliably from file://. See README.md for a one-command local server.');
 		</script>
 
+		<script type="module" src="js/bootstrap.js"></script>
 
 	</body>
 </html>

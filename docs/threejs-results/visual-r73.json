@@ -1,0 +1,122 @@
+[
+  {
+    "name": "default-normal-wireframe",
+    "revision": "73",
+    "counts": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+    ],
+    "nonBackgroundPixels": 7991
+  },
+  {
+    "name": "solid-material-0",
+    "revision": "73",
+    "counts": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+    ],
+    "nonBackgroundPixels": 28012
+  },
+  {
+    "name": "solid-material-1",
+    "revision": "73",
+    "counts": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+    ],
+    "nonBackgroundPixels": 28012
+  },
+  {
+    "name": "solid-material-3",
+    "revision": "73",
+    "counts": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+    ],
+    "nonBackgroundPixels": 28012
+  },
+  {
+    "name": "solid-material-4",
+    "revision": "73",
+    "counts": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+    ],
+    "nonBackgroundPixels": 28012
+  },
+  {
+    "name": "solid-material-5",
+    "revision": "73",
+    "counts": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+    ],
+    "nonBackgroundPixels": 28012
+  },
+  {
+    "name": "custom-additive",
+    "revision": "73",
+    "counts": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+    ],
+    "nonBackgroundPixels": 28012
+  },
+  {
+    "name": "orthographic-normal",
+    "revision": "73",
+    "counts": [
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57,
+      57
+    ],
+    "nonBackgroundPixels": 103556
+  }
+]

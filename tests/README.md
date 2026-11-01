@@ -18,3 +18,22 @@ browser APIs; they do not claim browser rendering or performance coverage.
 The regression workflow runs the same command on pull requests and pushes to
 `main`, using pinned Bun 1.4.4 and read-only repository permissions. No browser
 benchmark runs in CI. A failing assertion fails the job.
+
+## Optional real-browser migration checks
+
+The Three.js migration adds offline upstream checksum/capability tests and
+updates geometry/control fixtures to the actual pinned r187 modules. No browser
+or GPU is required for `bun tests/run.cjs`.
+
+For installed desktop Chrome only, optional sequential checks are available:
+
+```sh
+bun tests/browser-smoke.mjs
+bun tests/browser-smoke.mjs --unsupported
+```
+
+These launch a temporary headless Chrome with software SwiftShader and a local
+server. Set `--chrome "path/to/chrome"` or `CHROME_PATH` if necessary. They are
+not run automatically in CI and are not hardware-GPU benchmarks. See
+[the migration notes](../docs/threejs-upgrade.md) for visual/performance reports,
+comparison commands, coverage and important support changes.

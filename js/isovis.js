@@ -1,4 +1,5 @@
 function init() {
+	this.renderer = createRenderer();
 	this.workerSourceString = gatherWorkerResource('defaultFieldSource') + gatherWorkerResource('worker');
 //	workerSourceString = workerSourceString + gatherWorkerResource('three');
 	workerSourceString = workerSourceString + gatherWorkerResource('marchingCubes');
@@ -11,13 +12,12 @@ function init() {
 		faceBuffer[i] = new ArrayBuffer(4);
 		normalBuffer[i] = new ArrayBuffer(4);
 	}
-	this.theBoundingSphere = new THREE.Sphere(); // Only used to suppress irrelevant error messages in handleWorkerMessage().
 	this.meshes = new Array(8);
 	for (var i=0;i<8;i++) {
 		var g = new THREE.BufferGeometry()
-		g.addAttribute( 'position', new THREE.BufferAttribute( new Float32Array(0,0,0), 3 ) );
+		g.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array(0,0,0), 3 ) );
 		g.setIndex(  new THREE.BufferAttribute( new Uint16Array(0),1));
-		g.addAttribute( 'normal', new THREE.BufferAttribute( new Float32Array(0,0,0), 3 ) );
+		g.setAttribute( 'normal', new THREE.BufferAttribute( new Float32Array(0,0,0), 3 ) );
 		meshes[i] = new THREE.Mesh(g);
 	}
 	updateMaterial();
@@ -25,10 +25,6 @@ function init() {
 	initEditor();
 	initWorkers();
 
-	if ( Detector.webgl )
-		renderer = new THREE.WebGLRenderer( {antialias:true, preserveDrawingBuffer: true} );
-	else
-		renderer = new THREE.CanvasRenderer();
 	renderer.autoClear = false;
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	this.container = document.getElementById( 'ThreeJS' );
@@ -62,6 +58,9 @@ function init() {
 //	lights.last().position.set(camera.position);
 //	lights.push(new THREE.AmbientLight(0x222222));
 
+  // Match legacy constant-distance lighting and compensate the modern BRDF.
+  lights.forEach(function(light) { light.decay = 0; light.intensity = Math.PI; });
+
 	var axisMin = -10;
 	var axisMax =  10;
 	var axisRange = axisMax - axisMin;
@@ -78,7 +77,7 @@ function init() {
 	this.renderOrder = [0,0,0,0,0,0,0,0,];
 
 	scene = new THREE.Scene();
-	scene.add( new THREE.AxisHelper(axisMax) );
+	scene.add( new THREE.AxesHelper(axisMax) );
 
 	this.transforms = [];
 	transforms.push( plainTransform() );
@@ -133,7 +132,7 @@ function updateMaterial() {
 			myMaterial = new THREE.MeshBasicMaterial();
 		break;
 		case 1:
-			myMaterial = new THREE.MeshDepthMaterial();
+			myMaterial = createDepthDisplayMaterial();
 		break;
 	//	case 2:
 	//		myMaterial = new THREE.MeshFaceMaterial();

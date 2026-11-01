@@ -1,0 +1,520 @@
+{
+  "label": "threejs-migration-smoke",
+  "hardware": "Same local host, headless Chrome with SwiftShader; NOT a hardware-GPU performance claim",
+  "date": "2026-11-01T04:30:41.372Z",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+  "hardwareConcurrency": 8,
+  "deviceMemoryGiB": 16,
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+  "viewport": [
+    800,
+    480
+  ],
+  "workerCount": 8,
+  "settings": {
+    "resolutions": [
+      8,
+      16
+    ],
+    "repetitions": 3,
+    "warmups": 1,
+    "pauseMs": 150
+  },
+  "initialSession": {
+    "shapeParams": {
+      "editCode": false,
+      "editorWidth": 340,
+      "resolution": 30,
+      "reset": false,
+      "dimensions": 5,
+      "memoryOveruse": 0.5,
+      "iso": 5,
+      "parameters": [],
+      "interpolate": true,
+      "maxCoeffCount": 32,
+      "coeffCount": 6,
+      "coeff": [
+        3.5,
+        3,
+        1.5,
+        3,
+        -1,
+        2
+      ]
+    },
+    "cameraParams": {
+      "perspective": true,
+      "fov": 50,
+      "scale": 1,
+      "wobble": false,
+      "radius": 1,
+      "speed": 1,
+      "axes": true,
+      "background": "#001122",
+      "fps": true
+    },
+    "materialParams": {
+      "calcNormals": true,
+      "material": 4,
+      "opacity": 0.15,
+      "side": 0,
+      "blending": 2,
+      "equation": 0,
+      "depthTest": false,
+      "depthWrite": false,
+      "wireframe": true,
+      "coordinates": true,
+      "values": true,
+      "geometry": true
+    },
+    "transformParams": {
+      "zoom": 1.4,
+      "invertOrder": false,
+      "pushTransform": false,
+      "popTransform": false,
+      "applyTransforms": false,
+      "popAllOnApply": true,
+      "resetOrientation": false,
+      "popAllTransforms": false
+    },
+    "transforms": [
+      {
+        "type": "0",
+        "axis1": 0,
+        "axis2": 3,
+        "degrees": 24,
+        "s": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "d": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "row": 0,
+        "col": 1,
+        "shear": 0
+      }
+    ],
+    "baseOrientation": [
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
+    ]
+  },
+  "cases": [
+    {
+      "field": "default",
+      "resolution": 8,
+      "normals": false,
+      "roundTripMs": {
+        "count": 3,
+        "min": 3.1999998092651367,
+        "p50": 4,
+        "p95": 4.399999618530273,
+        "max": 4.399999618530273
+      },
+      "replyHandlingMs": {
+        "count": 3,
+        "min": 0.5,
+        "p50": 0.5999999046325684,
+        "p95": 0.6999998092651367,
+        "max": 0.6999998092651367
+      },
+      "twoAnimationFramesMs": {
+        "count": 3,
+        "min": 123,
+        "p50": 332.40000009536743,
+        "p95": 1464.2000002861023,
+        "max": 1464.2000002861023
+      },
+      "frameGapMs": {
+        "count": 3,
+        "min": 116.60000000000036,
+        "p50": 250.10000000000036,
+        "p95": 283.3000000000011,
+        "max": 283.3000000000011
+      },
+      "observedHeapBytes": {
+        "count": 105,
+        "min": 11978143,
+        "p50": 13338779,
+        "p95": 13420079,
+        "max": 13420175
+      },
+      "rendererResources": {
+        "geometries": 9,
+        "textures": 0
+      }
+    },
+    {
+      "field": "default",
+      "resolution": 8,
+      "normals": true,
+      "roundTripMs": {
+        "count": 3,
+        "min": 1.3000001907348633,
+        "p50": 1.6999998092651367,
+        "p95": 2.5,
+        "max": 2.5
+      },
+      "replyHandlingMs": {
+        "count": 3,
+        "min": 0.5,
+        "p50": 0.6999998092651367,
+        "p95": 1.0999999046325684,
+        "max": 1.0999999046325684
+      },
+      "twoAnimationFramesMs": {
+        "count": 3,
+        "min": 107.19999980926514,
+        "p50": 111.69999980926514,
+        "p95": 124.59999990463257,
+        "max": 124.59999990463257
+      },
+      "frameGapMs": {
+        "count": 3,
+        "min": 49.899999999999636,
+        "p50": 50,
+        "p95": 116.69999999999891,
+        "max": 116.69999999999891
+      },
+      "observedHeapBytes": {
+        "count": 50,
+        "min": 12123935,
+        "p50": 12614763,
+        "p95": 13471251,
+        "max": 13471251
+      },
+      "rendererResources": {
+        "geometries": 9,
+        "textures": 0
+      }
+    },
+    {
+      "field": "default",
+      "resolution": 16,
+      "normals": false,
+      "roundTripMs": {
+        "count": 3,
+        "min": 2.299999713897705,
+        "p50": 2.5999999046325684,
+        "p95": 3,
+        "max": 3
+      },
+      "replyHandlingMs": {
+        "count": 3,
+        "min": 0.6999998092651367,
+        "p50": 0.7000002861022949,
+        "p95": 0.8000001907348633,
+        "max": 0.8000001907348633
+      },
+      "twoAnimationFramesMs": {
+        "count": 3,
+        "min": 276.09999990463257,
+        "p50": 383.09999990463257,
+        "p95": 624.9000000953674,
+        "max": 624.9000000953674
+      },
+      "frameGapMs": {
+        "count": 3,
+        "min": 100.10000000000036,
+        "p50": 300,
+        "p95": 366.6999999999989,
+        "max": 366.6999999999989
+      },
+      "observedHeapBytes": {
+        "count": 87,
+        "min": 13461667,
+        "p50": 14196031,
+        "p95": 14532235,
+        "max": 14532931
+      },
+      "rendererResources": {
+        "geometries": 9,
+        "textures": 0
+      }
+    },
+    {
+      "field": "default",
+      "resolution": 16,
+      "normals": true,
+      "roundTripMs": {
+        "count": 3,
+        "min": 2.299999713897705,
+        "p50": 3.8999996185302734,
+        "p95": 6.400000095367432,
+        "max": 6.400000095367432
+      },
+      "replyHandlingMs": {
+        "count": 3,
+        "min": 0.5999999046325684,
+        "p50": 0.7999997138977051,
+        "p95": 1.0999999046325684,
+        "max": 1.0999999046325684
+      },
+      "twoAnimationFramesMs": {
+        "count": 3,
+        "min": 209.7000002861023,
+        "p50": 342.2000002861023,
+        "p95": 572.8000001907349,
+        "max": 572.8000001907349
+      },
+      "frameGapMs": {
+        "count": 3,
+        "min": 83.29999999999927,
+        "p50": 166.70000000000073,
+        "p95": 416.6000000000022,
+        "max": 416.6000000000022
+      },
+      "observedHeapBytes": {
+        "count": 88,
+        "min": 13737591,
+        "p50": 14808563,
+        "p95": 15276035,
+        "max": 15276099
+      },
+      "rendererResources": {
+        "geometries": 9,
+        "textures": 0
+      }
+    },
+    {
+      "field": "sphere",
+      "resolution": 8,
+      "normals": false,
+      "roundTripMs": {
+        "count": 3,
+        "min": 0.9000000953674316,
+        "p50": 1.4000000953674316,
+        "p95": 1.5,
+        "max": 1.5
+      },
+      "replyHandlingMs": {
+        "count": 3,
+        "min": 0.40000009536743164,
+        "p50": 0.5,
+        "p95": 0.6999998092651367,
+        "max": 0.6999998092651367
+      },
+      "twoAnimationFramesMs": {
+        "count": 3,
+        "min": 25.699999809265137,
+        "p50": 77.5,
+        "p95": 101,
+        "max": 101
+      },
+      "frameGapMs": {
+        "count": 3,
+        "min": 16.600000000002183,
+        "p50": 16.600000000002183,
+        "p95": 50,
+        "max": 50
+      },
+      "observedHeapBytes": {
+        "count": 46,
+        "min": 13919627,
+        "p50": 14161527,
+        "p95": 14562859,
+        "max": 14562859
+      },
+      "rendererResources": {
+        "geometries": 9,
+        "textures": 0
+      }
+    },
+    {
+      "field": "sphere",
+      "resolution": 8,
+      "normals": true,
+      "roundTripMs": {
+        "count": 3,
+        "min": 0.8000001907348633,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      },
+      "replyHandlingMs": {
+        "count": 3,
+        "min": 0.3000001907348633,
+        "p50": 0.40000009536743164,
+        "p95": 0.5,
+        "max": 0.5
+      },
+      "twoAnimationFramesMs": {
+        "count": 3,
+        "min": 27.300000190734863,
+        "p50": 28.200000286102295,
+        "p95": 32.40000009536743,
+        "max": 32.40000009536743
+      },
+      "frameGapMs": {
+        "count": 3,
+        "min": 16.599999999998545,
+        "p50": 16.600000000002183,
+        "p95": 16.700000000000728,
+        "max": 16.700000000000728
+      },
+      "observedHeapBytes": {
+        "count": 32,
+        "min": 13905763,
+        "p50": 14162839,
+        "p95": 14510863,
+        "max": 14510863
+      },
+      "rendererResources": {
+        "geometries": 9,
+        "textures": 0
+      }
+    },
+    {
+      "field": "sphere",
+      "resolution": 16,
+      "normals": false,
+      "roundTripMs": {
+        "count": 3,
+        "min": 1.4000000953674316,
+        "p50": 2,
+        "p95": 2.0999999046325684,
+        "max": 2.0999999046325684
+      },
+      "replyHandlingMs": {
+        "count": 3,
+        "min": 0.5,
+        "p50": 0.6999998092651367,
+        "p95": 0.7000002861022949,
+        "max": 0.7000002861022949
+      },
+      "twoAnimationFramesMs": {
+        "count": 3,
+        "min": 58.09999990463257,
+        "p50": 119.10000038146973,
+        "p95": 160.09999990463257,
+        "max": 160.09999990463257
+      },
+      "frameGapMs": {
+        "count": 3,
+        "min": 33.30000000000291,
+        "p50": 49.89999999999782,
+        "p95": 116.59999999999854,
+        "max": 116.59999999999854
+      },
+      "observedHeapBytes": {
+        "count": 42,
+        "min": 13917679,
+        "p50": 14224691,
+        "p95": 14401051,
+        "max": 14401051
+      },
+      "rendererResources": {
+        "geometries": 9,
+        "textures": 0
+      }
+    },
+    {
+      "field": "sphere",
+      "resolution": 16,
+      "normals": true,
+      "roundTripMs": {
+        "count": 3,
+        "min": 1.6999998092651367,
+        "p50": 2.1999998092651367,
+        "p95": 2.6999998092651367,
+        "max": 2.6999998092651367
+      },
+      "replyHandlingMs": {
+        "count": 3,
+        "min": 0.5,
+        "p50": 0.5999999046325684,
+        "p95": 0.8000001907348633,
+        "max": 0.8000001907348633
+      },
+      "twoAnimationFramesMs": {
+        "count": 3,
+        "min": 91.59999990463257,
+        "p50": 105.5,
+        "p95": 163.30000019073486,
+        "max": 163.30000019073486
+      },
+      "frameGapMs": {
+        "count": 3,
+        "min": 66.59999999999854,
+        "p50": 100,
+        "p95": 133.29999999999927,
+        "max": 133.29999999999927
+      },
+      "observedHeapBytes": {
+        "count": 47,
+        "min": 14101175,
+        "p50": 14537987,
+        "p95": 14737463,
+        "max": 14737463
+      },
+      "rendererResources": {
+        "geometries": 9,
+        "textures": 0
+      }
+    }
+  ],
+  "fields": [
+    {
+      "name": "default",
+      "source": "// Missing default-field coefficients use their startup defaults.\nvar defaults=[3.5,3,1.5,3,-1,2];\nvar coefficients=[];\nfor(var k=0;k<6;k++) coefficients[k]=k<c.length ? c[k] : defaults[k];\nc=coefficients;\nfor (var i=0,j=0; i<size3; i++,j+=n) {\n var t = Math.sqrt(Math.abs(x[j]*x[j] + x[j+1]*x[j+1] - c[0])) - c[1];\n var u = Math.sqrt(Math.abs(x[j+2]*x[j+2] + (n > 3 ? x[j+3]*x[j+3] : 0) - c[2])) - c[3];\n values[i] = t*t + u*u - (n > 4 ? c[4]*Math.sin(c[5]*x[j+4]) : 0);\n}"
+    },
+    {
+      "name": "sphere",
+      "source": "for(var i=0,j=0;i<size3;i++,j+=n) values[i]=x[j]*x[j]+x[j+1]*x[j+1]+x[j+2]*x[j+2]-9;"
+    }
+  ]
+}

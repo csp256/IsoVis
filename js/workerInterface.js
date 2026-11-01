@@ -80,32 +80,15 @@ function receiveBatchReply(data) {
 }
 
 
-// Workers always transfer Uint32 indices. Use a 16-bit upload where possible;
-// without OES_element_index_uint, expand only large meshes to triangle lists.
+// WebGL2 guarantees Uint32 element indices. Keep small uploads compact.
 function surfaceGeometry(data) {
- var positions = new Float32Array(data.buffers[0], 0, data.vertexCount * 3);
- var normals = new Float32Array(data.buffers[2], 0, data.vertexCount * 3);
- var indices = new Uint32Array(data.buffers[1], 0, data.indexCount);
  var geometry = new THREE.BufferGeometry();
- if (data.vertexCount <= 65535) {
-  geometry.setIndex(new THREE.BufferAttribute(new Uint16Array(indices), 1));
- } else if (renderer.extensions && renderer.extensions.get('OES_element_index_uint')) {
-  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
- } else {
-  var expandedPositions = new Float32Array(indices.length * 3);
-  var expandedNormals = new Float32Array(indices.length * 3);
-  for (var i=0; i<indices.length; i++) {
-   for (var j=0; j<3; j++) {
-    expandedPositions[i*3+j] = positions[indices[i]*3+j];
-    expandedNormals[i*3+j] = normals[indices[i]*3+j];
-   }
-  }
-  positions = expandedPositions;
-  normals = expandedNormals;
- }
- geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
- geometry.addAttribute('normal', new THREE.BufferAttribute(normals, 3));
+ var indices = new Uint32Array(data.buffers[1], 0, data.indexCount);
+ geometry.setIndex(new THREE.BufferAttribute(data.vertexCount <= 65535 ? new Uint16Array(indices) : indices, 1));
+ geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(data.buffers[0], 0, data.vertexCount * 3), 3));
+ geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(data.buffers[2], 0, data.vertexCount * 3), 3));
  geometry.setDrawRange(0, data.indexCount);
+ geometry.computeBoundingSphere();
  return geometry;
 }
 // Submitted source is separate from unsubmitted editor contents.
@@ -196,13 +179,8 @@ function publishWorkerResult(e) {
 	faceBuffer[octant] = meshes[octant].userData.faceBuffer || new ArrayBuffer(4);
 	normalBuffer[octant] = meshes[octant].geometry.attributes.normal.array.buffer;
 
-	// meshes[octant].geometry.addAttribute( 'position', new THREE.BufferAttribute( new Float32Array(e.data.buffers[0]), 3 ) );
-	// meshes[octant].geometry.setIndex(  new THREE.BufferAttribute( new Float32Array(e.data.buffers[1]),3));
-	// meshes[octant].geometry.addAttribute( 'normal', new THREE.BufferAttribute( new Float32Array(e.data.buffers[2]), 3 ) );
-
 	var oldGeometry = meshes[octant].geometry;
 	var buffGeom = surfaceGeometry(e.data);
-	buffGeom.boundingSphere = theBoundingSphere; // This is just to suppress error messages; has no other purpose.
 	var m = new THREE.Mesh( buffGeom, myMaterial );
 	// Keep the transfer-format buffer separate from the Uint16 GPU upload.
 	m.userData.faceBuffer = e.data.buffers[1];
