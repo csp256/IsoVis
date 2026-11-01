@@ -1,3 +1,27 @@
+// One capture and one advance timer at most. Stopping invalidates both.
+var gifCaptureTimer = null;
+var gifAdvanceTimer = null;
+function stopGIF() {
+  if (gifCaptureTimer !== null) clearTimeout(gifCaptureTimer);
+  if (gifAdvanceTimer !== null) clearTimeout(gifAdvanceTimer);
+  gifCaptureTimer = gifAdvanceTimer = null;
+  makingGIF = false;
+  doneWithGIF = true;
+  waitingForNextFrame = false;
+  this.frameNumber = undefined;
+}
+function scheduleGIFCapture() {
+  if (!makingGIF || doneWithGIF || waitingForNextFrame || gifCaptureTimer !== null) return;
+  waitingForNextFrame = true;
+  gifCaptureTimer = setTimeout(function() {
+    gifCaptureTimer = null;
+    if (!makingGIF || doneWithGIF) { stopGIF(); return; }
+    if (waitingForAnyWebWorker() || pendingWorkerStage !== null) { waitingForNextFrame = false; return; }
+    try { makeGIF(); }
+    catch (error) { stopGIF(); reportWorkerError(error.message); }
+  }, 2000);
+}
+
 // Validate before mutating live state. Retained transforms are resized when the
 // dimension changes; explicitly imported transforms must already be consistent.
 function importedDimensionState(groups) {
@@ -182,8 +206,7 @@ function makeGIF() {
     this.frameNumber++;
   }
   if (doneWithGIF) {
-    frameNumber = 'undefined';
-    makingGIF = false;
+    stopGIF();
     return;
   }
   var dURL = renderer.domElement.toDataURL('image/png');
@@ -191,11 +214,17 @@ function makeGIF() {
   saveAs(blob, "IsoVis_frame" + padWithZeros(frameNumber) + ".png");
 
   waitingForNextFrame = true;
-  setTimeout(doNextFrame, 5000);
+  gifAdvanceTimer = setTimeout(function() {
+    gifAdvanceTimer = null;
+    if (!makingGIF || doneWithGIF) { stopGIF(); return; }
+    try { doNextFrame(); }
+    catch (error) { stopGIF(); reportWorkerError(error.message); }
+  }, 5000);
 }
 
 function doNextFrame() {
   frame(frameNumber);
+  if (doneWithGIF) { stopGIF(); return; }
   talkToWorker('coords');
   waitingForNextFrame = false;
 }
@@ -219,6 +248,7 @@ function frame(f) {
 }
 
 function startGIF() {
+  stopGIF();
   camera.position.x = 13.801932541815242;
   camera.position.y = 8.67053362580356;
   camera.position.z = 12.602896281212557;
