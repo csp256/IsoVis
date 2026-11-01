@@ -30,26 +30,41 @@ function surfaceGeometry(data) {
 var activeFieldSource = null;
 var workerGeneration = 0;
 
+// Lower stages subsume later work. Latest editor submission wins, never a draft.
+var pendingWorkerStage = null;
+var pendingWorkerCode = null;
+var workerStages = ['init', 'coords', 'code', 'scalarField', 'geometry'];
+
 function talkToWorker(msg) {
+ var stage = workerStages.indexOf(msg);
+ if (stage < 0) return false;
  if (msg == 'code') {
-  activeFieldSource = myCodeMirror.getRange({line: 1, ch: 0}, {line: myCodeMirror.lineCount()-2, ch: Infinity});
+  activeFieldSource = pendingWorkerCode = myCodeMirror.getRange({line:1,ch:0}, {line:myCodeMirror.lineCount()-2,ch:Infinity});
  }
-	if (!waitingForAnyWebWorker()) {
-		document.title = titleBusy;
-		console.time("All Workers");
-		var R = computeFullTransform();
-    var outgoing = {num: 0, messageType:msg, R: R, n: n, params: shapeParams, calcNormals: materialParams.calcNormals};
-    if (activeFieldSource !== null) outgoing.code = activeFieldSource;
-		for (var i=0; i<8; i++) {
-			waitingForWebWorker[i] = true;
-			console.time("Worker " + i + " Total");
-      outgoing.num = i;
-			outgoing.vertexBuffer = vertexBuffer[i];
-			outgoing.faceBuffer = faceBuffer[i];
-			outgoing.normalBuffer = normalBuffer[i];
-			workers[i].postMessage( outgoing, [vertexBuffer[i], faceBuffer[i], normalBuffer[i]] );
-		}
-	}
+ if (pendingWorkerStage === null || stage < pendingWorkerStage) pendingWorkerStage = stage;
+ dispatchPendingWork();
+ return true; // Accepted into the queue, even when workers currently own buffers.
+}
+
+function dispatchPendingWork() {
+ if (pendingWorkerStage === null || waitingForAnyWebWorker()) return;
+ var stage = pendingWorkerStage;
+ var outgoing = {num:0, messageType:workerStages[stage], R:computeFullTransform(), n:n,
+  params:shapeParams, calcNormals:materialParams.calcNormals};
+ if (activeFieldSource !== null) outgoing.code = activeFieldSource;
+ document.title = titleBusy;
+ console.time('All Workers');
+ pendingWorkerStage = null;
+ pendingWorkerCode = null;
+ for (var i=0; i<8; i++) {
+  waitingForWebWorker[i] = true;
+  outgoing.num = i;
+  outgoing.vertexBuffer = vertexBuffer[i];
+  outgoing.faceBuffer = faceBuffer[i];
+  outgoing.normalBuffer = normalBuffer[i];
+  workers[i].postMessage(outgoing, [vertexBuffer[i],faceBuffer[i],normalBuffer[i]]);
+ }
+
 }
 
 function waitingForAnyWebWorker() {
@@ -83,6 +98,7 @@ function handleWorkerMessage(e) {
 		console.timeEnd("All Workers");
 	}
 	updateSceneMesh(octant, m);
+	dispatchPendingWork();
 }
 
 function initWorkers() {
