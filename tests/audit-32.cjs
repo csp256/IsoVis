@@ -13,7 +13,7 @@ const worker = () => {
  return c;
 };
 
-const c=context({document:{title:''},title:'IsoVis',titleBusy:'Busy',computeFullTransform:()=>[],n:5,shapeParams:{},materialParams:{},
+const c=context({document:{title:'',getElementById:()=>null},title:'IsoVis',titleBusy:'Busy',computeFullTransform:()=>[],n:5,shapeParams:{},materialParams:{},
  waitingForWebWorker:Array(8).fill(false),vertexBuffer:Array.from({length:8},()=>new ArrayBuffer(4)),faceBuffer:Array.from({length:8},()=>new ArrayBuffer(4)),normalBuffer:Array.from({length:8},()=>new ArrayBuffer(4))});
 load(c,'js/workerInterface.js');let sent=[],installed=[],errors=[];
 c.record=d=>installed.push(d.num);c.error=m=>errors.push(m);
