@@ -241,7 +241,7 @@ function defaultFieldBody() {
 		  function reply(num) {
 				var b = [vertexBuffer, faceBuffer, normalBuffer];
 //				if (num==0) console.log(vertexBuffer.byteLength);
-		  	self.postMessage( {num: num, buffers: b},  b);
+        self.postMessage( {num: num, buffers: b, vertexCount: activeVertexCount, indexCount: activeIndexCount}, b);
 //console.log(typeof buffers[0]);
 //self.postMessage( buffers, buffers );
 		  }
@@ -349,9 +349,9 @@ function defaultFieldBody() {
 
 				if (faceBuffer.byteLength < totalFaceCount * 3 * 4) {
 					this.faceBuffer = new ArrayBuffer(4 * Math.floor(totalFaceCount * 3 * memoryOveruse));
-					var faceArray = new Float32Array(faceBuffer);
+					var faceArray = new Uint32Array(faceBuffer);
 				} else {
-					faceArray = new Float32Array(faceBuffer);
+					faceArray = new Uint32Array(faceBuffer);
 					for (var i=totalFaceCount; i<faceArray.length; i++) {
 						faceArray[i] = 0;
 					}
@@ -553,6 +553,9 @@ function defaultFieldBody() {
 						}
 					}
 				}
+
+				this.activeVertexCount = vertexCount;
+				this.activeIndexCount = faceOffset;
 
 				for (var i=0; i<totalVertexCount*3;i++) normalArray[i] = /*Math.random();*/ vertexArray[i];
 
