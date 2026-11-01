@@ -200,22 +200,17 @@ function doNextFrame() {
   waitingForNextFrame = false;
 }
 
+// Experimental four-phase sequence, inclusive at each ninety-frame boundary.
 function frame(f) {
-  if (f<=90) {
-    var t = f - 0;
-    transforms[0].degrees = t;
-  } else if (t<=180) {
-    var t = f - 90;
-    transforms[1].degrees = 0.5 * t;
-  } else if (t<=270) {
-    var t = f - 180;
-    transforms[0].degrees = 90 - t;
-  } else if (t<=360) {
-    var t = f - 270;
-    transforms[1].degrees = 0.5 * t;
-  } else {
-    this.doneWithGIF = true;
+  if (!Number.isInteger(f) || f < 0) throw new Error('Frame must be a nonnegative integer');
+  if (f > 360) { this.doneWithGIF = true; return; }
+  if (transforms.length < 2 || transforms[0].type !== '0' || transforms[1].type !== '0') {
+    throw new Error('GIF sequence requires two rotation transforms');
   }
+  if (f <= 90) transforms[0].degrees = f;
+  else if (f <= 180) transforms[1].degrees = 0.5 * (f - 90);
+  else if (f <= 270) transforms[0].degrees = 90 - (f - 180);
+  else transforms[1].degrees = 0.5 * (f - 270);
 }
 
 function startGIF() {
