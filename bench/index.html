@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>IsoVis optional benchmark</title>
+<style>body{font:14px system-ui;max-width:1000px;margin:20px auto}iframe{width:800px;height:480px;border:1px solid #888}pre{white-space:pre-wrap}input{width:260px}</style>
+<h1>IsoVis optional Chrome benchmark</h1>
+<p>Run one tab at a time, with DevTools closed and other work idle. Defaults: resolutions 8/16, one warmup and five measured trials; normals off/on. No automatic run.</p>
+<p><label>Revision label <input id="label" placeholder="commit or branch"></label> <label>Hardware <input id="hardware" placeholder="CPU / RAM / OS"></label></p>
+<button id="start">Run benchmark</button> <button id="cancel" disabled>Cancel</button> <button id="download" disabled>Download JSON</button>
+<pre id="status">Ready. This page must be served over local HTTP; see bench/README.md.</pre>
+<iframe id="app" src="../IsoVis.html" title="Dedicated benchmark instance"></iframe>
+<script src="stats.js"></script><script src="benchmark.js"></script>
+<script>
+let controller,report;
+const status=document.getElementById('status'),start=document.getElementById('start'),cancel=document.getElementById('cancel'),download=document.getElementById('download');
+start.onclick=async()=>{
+  if(!document.getElementById('label').value.trim()){status.textContent='Enter the tested revision label first.';return;}
+  controller=new AbortController();start.disabled=true;cancel.disabled=false;download.disabled=true;status.textContent='Running sequential small trials…';
+  try{report=await runIsoVisBenchmark(document.getElementById('app').contentWindow,{label:document.getElementById('label').value,hardware:document.getElementById('hardware').value||'unspecified',signal:controller.signal,onCase:c=>{status.textContent+='\n'+c.field+' res='+c.resolution+' normals='+c.normals+' p50='+c.roundTripMs.p50.toFixed(1)+'ms';}});status.textContent+='\nComplete. Download JSON to compare equivalent runs.';download.disabled=false;}
+  catch(error){status.textContent+='\n'+error.message;}
+  finally{start.disabled=false;cancel.disabled=true;}
+};
+cancel.onclick=()=>controller.abort();
+download.onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='isovis-benchmark.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+</script>
