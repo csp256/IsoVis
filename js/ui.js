@@ -1,3 +1,21 @@
+// dat.GUI mutates before invoking callbacks: restore invalid edits immediately.
+function validatedNumberControl(folder, object, key, validate, changed, finish) {
+  var previous = object[key];
+  var control = folder.add(object, key);
+  control[finish ? 'onFinishChange' : 'onChange'](function(value) {
+    try { validate(value); }
+    catch (error) {
+      object[key] = previous;
+      control.updateDisplay();
+      reportWorkerError(error.message);
+      return;
+    }
+    previous = value;
+    changed();
+  });
+  return control;
+}
+
 function buildLeftGUI() {
   if (typeof leftgui == 'undefined') {
     // Default state.
@@ -56,7 +74,7 @@ function dimensionsChanged() {
 function shapeFolder(g) {
   var folder = g.addFolder('Shape');
   folder.add(shapeParams, 'editorWidth').min(0).max(window.innerWidth*0.5 /* - Math.min(245, 2*parseInt(leftgui.domElement.style.width)) */).step(1).onFinishChange( updateEditor );
-  folder.add(shapeParams, 'resolution').min(0).max(65).step(1).onFinishChange( setSizeDirty );
+  validatedNumberControl(folder, shapeParams, 'resolution', requireResolution, setSizeDirty, true).min(2).max(65).step(1);
   folder.add(shapeParams, 'reset').name('Abort').onChange( resetWorker10 );
   folder.add(shapeParams, 'memoryOveruse').min(0).max(1).step(0.01);
   folder.add(shapeParams, 'interpolate').onChange( setMeshDirty );
@@ -116,7 +134,7 @@ function buildRightGUI() {
   }
   rightgui = new dat.GUI();
 
-  rightgui.add(transformParams, 'zoom').min(0).onChange( setCoordsDirty );
+  validatedNumberControl(rightgui, transformParams, 'zoom', requireZoom, setCoordsDirty).min(0.000001);
 
   transformsFolder(rightgui);
   rightgui.__folders.Transforms.closed = closedState.Transforms;
@@ -133,7 +151,7 @@ function buildRightGUI() {
 			case "1": // SCALE
 				var folder = rightgui.addFolder((i+1)+' Scale');
 				folder.add(transforms[i], 'type', {Rotation:0, Scaling:1, Translation:2, Shear:3}).onChange( updateTransformType );
-        for (var k=0; k<n; k++) folder.add(transforms[i].s, k, transforms[i].s[k]).min(-Infinity).onChange(setCoordsDirty);
+        for (var k=0; k<n; k++) validatedNumberControl(folder, transforms[i].s, k, requireScale, setCoordsDirty).min(-Infinity);
 			break;
 			case "2": // TRANSLATE
 				var folder = rightgui.addFolder((i+1)+' Translation');

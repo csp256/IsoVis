@@ -94,5 +94,6 @@ function computeTransform() {
 	return R;
 }
 function computeFullTransform() {
+	validateNumericSettings(shapeParams, transformParams, transforms);
 	return numeric.mul(1/transformParams.zoom, numeric.dot(baseOrientation, computeTransform()));
 }

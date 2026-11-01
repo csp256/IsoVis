@@ -67,6 +67,13 @@ function importFromJSON() {
   if (!Array.isArray(saved) && (!saved || saved.version !== 1 || !Array.isArray(saved.groups))) throw new Error('Unsupported session format');
   foo = Array.isArray(saved) ? saved : saved.groups;
   var dimensionState = importedDimensionState(foo);
+  var candidateShape = Object.assign({}, shapeParams);
+  var candidateTransform = Object.assign({}, transformParams);
+  foo.forEach(function(group) {
+    if (group.name === 'shapeParams') Object.assign(candidateShape, group.data);
+    if (group.name === 'transformParams') Object.assign(candidateTransform, group.data);
+  });
+  validateNumericSettings(candidateShape, candidateTransform, dimensionState.transforms);
   var dimensions = dimensionState.dimensions;
   foo.forEach(function(group) {
    if (group.name == 'shapeParams' && group.data.dimensions !== undefined) dimensions = group.data.dimensions;
