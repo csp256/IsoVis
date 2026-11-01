@@ -39,6 +39,7 @@ function handleWorkerMessage(e) {
 	// meshes[octant].geometry.setIndex(  new THREE.BufferAttribute( new Float32Array(e.data.buffers[1]),3));
 	// meshes[octant].geometry.addAttribute( 'normal', new THREE.BufferAttribute( new Float32Array(e.data.buffers[2]), 3 ) );
 
+	var oldGeometry = meshes[octant].geometry;
 	var buffGeom = new THREE.BufferGeometry();
 	buffGeom.addAttribute( 'position', new THREE.BufferAttribute( new Float32Array(e.data.buffers[0]), 3 ) );
 	buffGeom.setIndex(  new THREE.BufferAttribute( new Float32Array(e.data.buffers[1]),3));
@@ -46,6 +47,7 @@ function handleWorkerMessage(e) {
 	buffGeom.boundingSphere = theBoundingSphere; // This is just to suppress error messages; has no other purpose.
 	var m = new THREE.Mesh( buffGeom, myMaterial );
 	meshes[octant] = m;
+	oldGeometry.dispose();
 	waitingForWebWorker[octant] = false;
 	if (!waitingForAnyWebWorker()) {
 		document.title = title;

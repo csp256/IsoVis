@@ -118,6 +118,7 @@ function resetScenes() {
 }
 
 function updateMaterial() {
+	var oldMaterial = typeof myMaterial == 'undefined' ? null : myMaterial;
 	switch (parseInt(materialParams.material)) {
 		default:
 		case 0:
@@ -150,6 +151,7 @@ function updateMaterial() {
 	for (var i=0; i<8; i++) {
 		meshes[i].material = myMaterial;
 	}
+	if (oldMaterial) oldMaterial.dispose();
 }
 
 function animate() {
