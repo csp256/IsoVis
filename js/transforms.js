@@ -17,7 +17,13 @@ function popTransform() {
 function applyTransforms() {
 	transformParams.applyTransforms = false;
 	baseOrientation = numeric.dot(baseOrientation, computeTransform());
-	if (params.popAllOnApply) { popAllTransforms(); }
+	if (transformParams.popAllOnApply) {
+		popAllTransforms();
+	} else {
+		// Keep the stack slots, but consume their transforms after baking them.
+		for (var k=0; k<transforms.length; k++) transforms[k] = plainTransform();
+		buildRightGUI();
+	}
 	setCoordsDirty();
 }
 function resetOrientation() {

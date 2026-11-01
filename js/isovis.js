@@ -1,5 +1,5 @@
 function init() {
-	this.workerSourceString = gatherWorkerResource('worker');
+	this.workerSourceString = gatherWorkerResource('defaultFieldSource') + gatherWorkerResource('worker');
 //	workerSourceString = workerSourceString + gatherWorkerResource('three');
 	workerSourceString = workerSourceString + gatherWorkerResource('marchingCubes');
 
@@ -16,7 +16,7 @@ function init() {
 	for (var i=0;i<8;i++) {
 		var g = new THREE.BufferGeometry()
 		g.addAttribute( 'position', new THREE.BufferAttribute( new Float32Array(0,0,0), 3 ) );
-		g.setIndex(  new THREE.BufferAttribute( new Float32Array(0,0,0),3));
+		g.setIndex(  new THREE.BufferAttribute( new Uint16Array(0),1));
 		g.addAttribute( 'normal', new THREE.BufferAttribute( new Float32Array(0,0,0), 3 ) );
 		meshes[i] = new THREE.Mesh(g);
 	}
@@ -105,8 +105,7 @@ function init() {
 }
 
 function resetScenes() {
-	// I should do this in a smarter way.
-	// This function is called for each message from worker...
+	if (typeof scenes != 'undefined' && scenes.length == 8) return;
 	this.scenes = [];
 	for (var k=0; k<8; k++) {
 		scenes.push( new THREE.Scene() );
@@ -117,7 +116,17 @@ function resetScenes() {
 	}
 }
 
+function updateSceneMesh(octant, mesh) {
+	var target = scenes[octant];
+	// Lights are permanent; only the previous surface belongs to this slot.
+	for (var i=target.children.length-1; i>=0; i--) {
+		if (target.children[i] instanceof THREE.Mesh) target.remove(target.children[i]);
+	}
+	target.add(mesh);
+}
+
 function updateMaterial() {
+	var oldMaterial = typeof myMaterial == 'undefined' ? null : myMaterial;
 	switch (parseInt(materialParams.material)) {
 		default:
 		case 0:
@@ -150,6 +159,7 @@ function updateMaterial() {
 	for (var i=0; i<8; i++) {
 		meshes[i].material = myMaterial;
 	}
+	if (oldMaterial) oldMaterial.dispose();
 }
 
 function animate() {
@@ -167,21 +177,9 @@ function update() {
 	controls.update();
 	stats.update();
 	if (!makingGIF) {
-		if (sizeDirty) {
-			sizeDirty = false;
-			talkToWorker('init');
-		}
-		if (coordsDirty) {
-			coordsDirty = false;
-			talkToWorker('coords');
-		}
-		if (scalarFieldDirty) {
-			scalarFieldDirty = false;
-			talkToWorker('scalarField');
-		}
-		if (meshDirty) {
-			meshDirty = false;
-			talkToWorker('geometry');
+		var request = sizeDirty ? 'init' : coordsDirty ? 'coords' : scalarFieldDirty ? 'scalarField' : meshDirty ? 'geometry' : null;
+		if (request && talkToWorker(request)) {
+			sizeDirty = coordsDirty = scalarFieldDirty = meshDirty = false;
 		}
 	}
 }

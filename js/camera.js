@@ -59,6 +59,7 @@ function makeCamera() {
 	camera.position.copy(pos);
 	camera.lookAt(new THREE.Vector3());
 
+	if (typeof controls != 'undefined') controls.dispose();
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
   windowResize = THREEx.WindowResize(renderer, camera, shapeParams.editorWidth);
 }

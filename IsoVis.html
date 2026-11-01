@@ -43,6 +43,12 @@
 		<!-- <script src='js/gif.js'></script> -->
 		<script src='js/isovis.js'></script>
 
+		<script id='defaultFieldSource'>
+function defaultFieldBody() {
+ return "for (var i=0,j=0; i<size3; i++,j+=n) {\n var t = Math.sqrt(Math.abs(x[j]*x[j] + x[j+1]*x[j+1] - c[0])) - c[1];\n var u = Math.sqrt(Math.abs(x[j+2]*x[j+2] + (n > 3 ? x[j+3]*x[j+3] : 0) - c[2])) - c[3];\n values[i] = t*t + u*u - (n > 4 ? c[4]*Math.sin(c[5]*x[j+4]) : 0);\n}";
+}
+		</script>
+
 		<script type='text/worker' id='worker'>
 		  var setup = function(dim, s, octant) {
 		  	this.n = dim;
@@ -151,26 +157,12 @@
 		  }
 
 		  function defaultField() {
-		  	return new Function('x', 'c', '\
-					for (var i=0,j=0; i<size3; i++,j+=n) {\
-			  		var t = Math.sqrt(Math.abs(x[j+0]*x[j+0] + x[j+1]*x[j+1] - c[0])) - c[1]; \
-			  		var u = Math.sqrt(Math.abs(x[j+2]*x[j+2] + x[j+3]*x[j+3] - c[2])) - c[3]; \
-			  		values[i] = t*t + u*u - c[4]*Math.sin(c[5]*x[j+4]); \
-					}');
+            return new Function('x', 'c', defaultFieldBody());
 		  }
 
 		  function updateFieldFunction(data) {
-		  	if (data.messageType == 'code') {
-		  		try {
-		  			field = new Function('x', 'c', data.code);
-		  		} catch(err) {
-		  			if (data.num == 0) {
-		  				console.log(err);
-		  				console.log('Could not compile code. Building default field() instead.');
-		  			}
-		  			field = defaultField();
-		  		}
-		  	}
+        if (typeof data.code == 'string') field = new Function('x', 'c', data.code);
+
 		  }
 
 		  function rebuildScalarField(c, num) {
@@ -210,6 +202,12 @@
 
 		  onmessage = function(e) {
 	    	console.time('Worker ' + e.data.num + ' Task');
+            var previousField = typeof field == 'undefined' ? null : field;
+            // Establish ownership even if user code throws before geometry work.
+            this.vertexBuffer = e.data.vertexBuffer;
+            this.faceBuffer = e.data.faceBuffer;
+            this.normalBuffer = e.data.normalBuffer;
+            try {
 	    	switch (e.data.messageType) {
 	    		case 'echo':
 	    			self.postMessage( e.data.num );
@@ -224,6 +222,8 @@
 	    		case 'scalarField':
 	    			rebuildScalarField(e.data.params.coeff, e.data.num);
 	    		case 'geometry':
+                        if (this.fieldNeedsRecovery) rebuildScalarField(e.data.params.coeff, e.data.num);
+                        this.fieldNeedsRecovery = false;
 						this.vertexBuffer = e.data.vertexBuffer;
 						this.faceBuffer = e.data.faceBuffer;
 						this.normalBuffer = e.data.normalBuffer;
@@ -234,13 +234,19 @@
 	    			console.log('ERROR');
 	    		break;
 	    	}
+            } catch (err) {
+                this.field = previousField || defaultField();
+                this.fieldNeedsRecovery = true;
+                var returned = [vertexBuffer, faceBuffer, normalBuffer];
+                self.postMessage({num:e.data.num, error:String(err.message || err), buffers:returned}, returned);
+            }
 		  	//console.timeEnd('Worker ' + e.data.num + ' Task');
 		  }
 
 		  function reply(num) {
 				var b = [vertexBuffer, faceBuffer, normalBuffer];
 //				if (num==0) console.log(vertexBuffer.byteLength);
-		  	self.postMessage( {num: num, buffers: b},  b);
+        self.postMessage( {num: num, buffers: b, vertexCount: activeVertexCount, indexCount: activeIndexCount}, b);
 //console.log(typeof buffers[0]);
 //self.postMessage( buffers, buffers );
 		  }
@@ -348,9 +354,9 @@
 
 				if (faceBuffer.byteLength < totalFaceCount * 3 * 4) {
 					this.faceBuffer = new ArrayBuffer(4 * Math.floor(totalFaceCount * 3 * memoryOveruse));
-					var faceArray = new Float32Array(faceBuffer);
+					var faceArray = new Uint32Array(faceBuffer);
 				} else {
-					faceArray = new Float32Array(faceBuffer);
+					faceArray = new Uint32Array(faceBuffer);
 					for (var i=totalFaceCount; i<faceArray.length; i++) {
 						faceArray[i] = 0;
 					}
@@ -553,7 +559,28 @@
 					}
 				}
 
-				for (var i=0; i<totalVertexCount*3;i++) normalArray[i] = /*Math.random();*/ vertexArray[i];
+				this.activeVertexCount = vertexCount;
+				this.activeIndexCount = faceOffset;
+				// Area-weighted mesh normals, outside the tuned cube traversal.
+				// Disabled means zero normals, never position vectors.
+				for (var i=0; i<totalVertexCount*3; i++) normalArray[i] = 0;
+				if (calcNormals) {
+					for (var i=0; i<faceOffset; i+=3) {
+						var a=faceArray[i]*3, b=faceArray[i+1]*3, c=faceArray[i+2]*3;
+						var ux=vertexArray[b]-vertexArray[a], uy=vertexArray[b+1]-vertexArray[a+1], uz=vertexArray[b+2]-vertexArray[a+2];
+						var vx=vertexArray[c]-vertexArray[a], vy=vertexArray[c+1]-vertexArray[a+1], vz=vertexArray[c+2]-vertexArray[a+2];
+						var nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+						for (var j=0; j<3; j++) {
+							var index=faceArray[i+j]*3;
+							normalArray[index]+=nx; normalArray[index+1]+=ny; normalArray[index+2]+=nz;
+						}
+					}
+					for (var i=0; i<totalVertexCount*3; i+=3) {
+						var length=Math.sqrt(normalArray[i]*normalArray[i]+normalArray[i+1]*normalArray[i+1]+normalArray[i+2]*normalArray[i+2]);
+						if (length>0) { normalArray[i]/=length; normalArray[i+1]/=length; normalArray[i+2]/=length; }
+					}
+				}
+
 
 
 				// buffGeom.addAttribute( 'position', new THREE.BufferAttribute( vertexArray, 3 ) );

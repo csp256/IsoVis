@@ -1,3 +1,47 @@
+// Validate before mutating live state. Retained transforms are resized when the
+// dimension changes; explicitly imported transforms must already be consistent.
+function importedDimensionState(groups) {
+ if (!Array.isArray(groups)) throw new Error('Settings must be an array of groups');
+ var dimensions = shapeParams.dimensions, resolution = shapeParams.resolution;
+ var stack = transforms, explicitStack = false, importedShape = null;
+ var seen = {};
+ groups.forEach(function(group) {
+  if (!group || typeof group.name != 'string' || !group.data || seen[group.name]) throw new Error('Invalid or duplicate settings group');
+  seen[group.name] = true;
+  if (group.name == 'shapeParams') {
+   importedShape = group.data;
+   if (group.data.dimensions !== undefined) dimensions = group.data.dimensions;
+   if (group.data.resolution !== undefined) resolution = group.data.resolution;
+  }
+  if (group.name == 'transforms') { stack = group.data; explicitStack = true; }
+ });
+ if (!Number.isInteger(dimensions) || dimensions < 3) throw new Error('Dimensions must be an integer of at least 3');
+ if (!Number.isInteger(resolution) || resolution < 2 || resolution > 65) throw new Error('Resolution must be between 2 and 65');
+ if (importedShape && importedShape.coeff !== undefined) {
+  if (!Array.isArray(importedShape.coeff) || !importedShape.coeff.every(Number.isFinite) ||
+      importedShape.coeff.length > 32 ||
+      (importedShape.coeffCount !== undefined && importedShape.coeffCount !== importedShape.coeff.length)) throw new Error('Invalid coefficients');
+ }
+ if (!Array.isArray(stack)) throw new Error('Invalid transform stack');
+ stack = stack.map(function(t) {
+  if (!t || ['0','1','2','3'].indexOf(t.type) < 0) throw new Error('Invalid transform type');
+  var result = {};
+  Object.keys(t).forEach(function(key) { result[key] = t[key]; });
+  ['axis1','axis2','row','col'].forEach(function(key) {
+   if (!Number.isInteger(t[key]) || t[key] < 0 || (explicitStack && t[key] >= dimensions)) throw new Error('Invalid transform axis');
+   result[key] = Math.min(t[key], dimensions-1);
+  });
+  ['degrees','shear'].forEach(function(key) { if (!Number.isFinite(t[key])) throw new Error('Invalid transform value'); });
+  ['s','d'].forEach(function(key) {
+   if (!Array.isArray(t[key]) || !t[key].every(Number.isFinite) || (explicitStack && t[key].length !== dimensions)) throw new Error('Invalid transform vector');
+   result[key] = Array.from({length:dimensions}, function(_,i) { return i<t[key].length ? t[key][i] : key=='s' ? 1 : 0; });
+  });
+  if (result.s.some(function(x) {return x===0;})) throw new Error('Scale cannot be zero');
+  return result;
+ });
+ return {dimensions:dimensions, transforms:stack};
+}
+
 function exportToJSON() {
   var foo = [];
   foo.push({name: 'shapeParams', data: shapeParams});
@@ -5,7 +49,7 @@ function exportToJSON() {
   foo.push({name: 'materialParams', data: materialParams});
   foo.push({name: 'transformParams', data: transformParams});
   foo.push({name: 'transforms', data: transforms});
-  window.prompt("Copy to clipboard: Ctrl+C, Enter.", JSON.stringify(foo));
+  window.prompt("Copy to clipboard: Ctrl+C, Enter.", JSON.stringify({version:1, groups:foo, baseOrientation:baseOrientation, activeFieldSource:activeFieldSource}));
 }
 
 var foo;
@@ -18,7 +62,24 @@ function merge(a, b) {
 
 function importFromJSON() {
   var inString = window.prompt("Paste JSON, Enter.", '');
-  foo = JSON.parse(inString);
+  if (inString === null) return;
+  var saved = JSON.parse(inString);
+  if (!Array.isArray(saved) && (!saved || saved.version !== 1 || !Array.isArray(saved.groups))) throw new Error('Unsupported session format');
+  foo = Array.isArray(saved) ? saved : saved.groups;
+  var dimensionState = importedDimensionState(foo);
+  var dimensions = dimensionState.dimensions;
+  foo.forEach(function(group) {
+   if (group.name == 'shapeParams' && group.data.dimensions !== undefined) dimensions = group.data.dimensions;
+  });
+  if (!Number.isInteger(dimensions) || dimensions < 3) throw new Error('Invalid dimensions');
+  var matrix = Array.isArray(saved) ? numeric.identity(dimensions+1) : saved.baseOrientation;
+  if (!Array.isArray(matrix) || matrix.length !== dimensions+1 || !matrix.every(function(row) {
+   return Array.isArray(row) && row.length === dimensions+1 && row.every(Number.isFinite);
+  })) throw new Error('Invalid base orientation');
+  var source = Array.isArray(saved) ? null : saved.activeFieldSource;
+  if (source !== null && typeof source != 'string') throw new Error('Invalid function source');
+  if (source !== null) new Function('x','c',source); // Syntax check before changing state.
+
   
   for (var i in foo) {
     var group = foo[i];
@@ -40,6 +101,18 @@ function importFromJSON() {
       break;
     }
   }
+  n = dimensionState.dimensions;
+  shapeParams.dimensions = n;
+  transforms = dimensionState.transforms;
+  shapeParams.coeffCount = shapeParams.coeff.length;
+  for (var k=0; k<shapeParams.coeff.length; k++) cachedCoeff[k] = shapeParams.coeff[k];
+  baseOrientation = matrix.map(function(row) {return row.slice();});
+  activeFieldSource = source;
+  // Replace the editor draft too, so the visible session matches the restored one.
+  myCodeMirror.off('beforeChange', beforeChangeCallback);
+  myCodeMirror.setValue(source === null ? defaultText() : 'function field(x, c, size3, n) {\n' + source + '\n}');
+  myCodeMirror.on('beforeChange', beforeChangeCallback);
+
   resetWorker(shapeParams.resolution);
   updateMaterial();
   updateBackground();
