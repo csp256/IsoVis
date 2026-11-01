@@ -8,6 +8,7 @@ There is no framework, bundler, CDN, or Node runtime requirement.
 
 Development tools: Just, Bun (CI pins 1.4.4), and uv. uv manages Python when needed;
 Windows needs neither Bash nor a separately managed Python installation.
+GitLab is the primary host; the retained GitHub remote is a secondary copy.
 
 ```sh
 just deps       # Install the exact compiler in bun.lock; no lifecycle scripts.
@@ -70,3 +71,16 @@ Next slices can give settings/state private ownership, migrate camera/layout,
 GUI and worker messages, then replace each ambient bridge with explicit module
 imports. Vendored libraries should remain unchanged. In editors, select the
 workspace TypeScript version to use the same compiler as CI.
+
+## GitLab CI
+
+`.gitlab-ci.yml` uses an immutable uv/Python image. Its cross-platform
+`just/ci.py` entry point downloads official Bun/Just archives, verifies committed
+SHA-256 hashes before using their binaries, then invokes `just deps` and
+`just check`. Nothing is installed globally. `just ci` reproduces this bootstrap
+locally; ordinary development can continue using already installed tools.
+Changing a tool version requires updating its archive hashes too.
+
+The GitHub workflow remains as optional Linux/Windows coverage, but GitLab pushes
+do not automatically push to GitHub. The CI bootstrap uses standard-library
+Python only; the application still needs no Python or tools to run in a browser.

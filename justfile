@@ -55,3 +55,7 @@ visual_report path:
 # Write a complete optional benchmark report to a chosen path.
 benchmark_report path:
     bun tests/browser_smoke.mjs --benchmark --report "{{path}}"
+
+# Reproduce CI with checksum-pinned native tools, installed only in this checkout.
+ci:
+    uv run --no-project just/ci.py

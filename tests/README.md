@@ -23,10 +23,17 @@ assertion, file, and VM APIs. There are no parallel test workers. VM tests
 substitute browser APIs; they do not claim browser rendering or performance
 coverage. The naming guard skips installed third-party dependencies.
 
-The regression workflow runs `just deps` and `just check` on Linux and Windows
-for pull requests and pushes to `main`, with pinned tool versions/actions and
-read-only repository permissions. A failing compiler, stale output, or failing
-assertion fails the job. No browser benchmark runs in CI.
+GitLab is primary. Its pipeline runs the same `just deps` and `just check`
+recipes on Linux, using a digest-pinned uv/Python image and checksum-pinned
+Bun/Just archives. The standard-library bootstrap in `just/ci.py` supports
+macOS, Linux, and Windows (x64/ARM64), and installs tools only in `.ci_tools/`.
+Run `just ci` to reproduce it locally. No global installation or shell installer
+is performed.
+
+The retained GitHub workflow additionally checks Linux and Windows when a branch
+is pushed there. GitHub is not automatically synchronized by a GitLab push.
+A failing compiler, stale output, or failing assertion fails either pipeline.
+No browser benchmark runs in CI.
 
 ## Optional real-browser checks
 

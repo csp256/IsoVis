@@ -1,6 +1,9 @@
 # IsoVis
 Create higher dimensional shapes in a web browser.
 
+Primary repository: [gitlab.com/csp256/isovis](https://gitlab.com/csp256/isovis).
+GitHub remains a secondary copy; new issues and merge requests belong on GitLab.
+
 ![GitHub Logo](/image2.png)
 
 ## Run locally
@@ -237,7 +240,7 @@ This started off as a quick, one-off side project. I started off unfamiliar with
 - Presets, volumetric visualization and nonlinear transformations are potential
   future features, not implemented functionality.
 
-Use [GitHub issues](https://github.com/csp256/IsoVis/issues) for the current defect
+Use [GitLab issues](https://gitlab.com/csp256/isovis/-/issues) for the current defect
 and improvement backlog rather than treating the historical bug list as status.
 
 ## Pull requests, suggestions, and use-cases welcome.

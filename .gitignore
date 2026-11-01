@@ -38,3 +38,4 @@ Icon
 # Development dependencies; emitted browser JS stays committed.
 node_modules/
 __pycache__/
+.ci_tools/

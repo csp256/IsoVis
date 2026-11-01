@@ -21,4 +21,7 @@ try {
  const result=spawnSync(process.execPath,['tests/run.cjs'],{cwd:dir,encoding:'utf8'});assert.equal(result.status,1);
 } finally {fs.rmSync(dir,{recursive:true,force:true});}
 const workflow=fs.readFileSync('.github/workflows/tests.yml','utf8');
-assert(workflow.includes('pull_request:'));assert(workflow.includes('branches: [main]'));assert(workflow.includes('run: just deps'));assert(workflow.includes('run: just check'));assert(workflow.includes('windows-latest'));assert(workflow.includes('contents: read'));assert(!workflow.includes('npm install'));
+assert(workflow.includes('pull_request:'));assert(workflow.includes('branches: [main]'));assert(workflow.includes('run: uv run --no-project just/ci.py'));assert(workflow.includes('windows-latest'));assert(workflow.includes('contents: read'));assert(!workflow.includes('npm install'));
+
+const gitlab=fs.readFileSync('.gitlab-ci.yml','utf8');
+assert(gitlab.includes('merge_request_event'));assert(gitlab.includes('uv run --no-project just/ci.py'));assert(gitlab.includes('@sha256:'));
