@@ -1,3 +1,5 @@
+var workerGeneration = 0;
+
 function talkToWorker(msg) {
 	if (!waitingForAnyWebWorker()) {
 		document.title = titleBusy;
@@ -61,17 +63,28 @@ function initWorkers() {
   }
 }
 
+function installWorkerHandlers(worker, octant, generation) {
+ worker.onmessage = function(e) {
+  if (generation === workerGeneration && workers[octant] === worker) handleWorkerMessage(e);
+ };
+}
+
 function resetWorker(r) {
+ workerGeneration++;
 	shapeParams.reset = false;
 	shapeParams.resolution = r;
 	document.title = title;
 	for (var i=0; i<8; i++) {
 		waitingForWebWorker[i] = false;
 		workers[i].terminate();
+		// Terminated workers owned the transferred buffers; never reuse them.
+		vertexBuffer[i] = new ArrayBuffer(4);
+		faceBuffer[i] = new ArrayBuffer(4);
+		normalBuffer[i] = new ArrayBuffer(4);
 	}
 	for (var i=0; i<8; i++) {
 		workers[i] = makeWorker(workerSourceString);
-		workers[i].onmessage = handleWorkerMessage;
+		installWorkerHandlers(workers[i], i, workerGeneration);
 	}
 	talkToWorker('init');
 
