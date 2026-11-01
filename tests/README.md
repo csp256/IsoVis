@@ -14,3 +14,7 @@ bun tests/run.cjs
 Individual `tests/audit-<finding>.cjs` files can also be run directly with Bun.
 Fixtures are small and there are no parallel test workers. VM tests substitute
 browser APIs; they do not claim browser rendering or performance coverage.
+
+The regression workflow runs the same command on pull requests and pushes to
+`main`, using pinned Bun 1.4.4 and read-only repository permissions. No browser
+benchmark runs in CI. A failing assertion fails the job.
