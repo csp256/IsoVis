@@ -16,15 +16,28 @@ function validatedNumberControl(folder, object, key, validate, changed, finish) 
   return control;
 }
 
+// Keep lifecycle adaptation in application code; the vendored build is pristine.
+function destroyGUI(gui) {
+  function stopListening(folder) {
+    folder.__listening.length = 0;
+    Object.keys(folder.__folders).forEach(function(name) { stopListening(folder.__folders[name]); });
+  }
+  // End any active numeric/color/panel drag before removing its controls.
+  window.dispatchEvent(new MouseEvent('mouseup'));
+  stopListening(gui);
+  gui.destroy();
+
+}
+
 function buildLeftGUI() {
   if (typeof leftgui == 'undefined') {
     // Default state.
     var closedState = { Shape: false, Camera: true, Material: true };
   } else {
     var closedState = { Shape: leftgui.__folders.Shape.closed, Camera: leftgui.__folders.Camera.closed, Material: leftgui.__folders.Material.closed };
-    leftgui.destroy();
+    destroyGUI(leftgui);
   }
-	leftgui = new dat.GUI( {autoplace:false, } );
+	leftgui = new dat.GUI({hideable:false});
   leftgui.domElement.id = 'leftGUI';
 
   shapeFolder(leftgui);
@@ -51,8 +64,7 @@ function updateCoeff() {
 
   var c = leftgui.__folders.Shape.__folders.Coefficients.closed;
   leftgui.__folders.Shape.__folders.Coefficients.close();
-  leftgui.__folders.Shape.__folders.Coefficients.domElement.parentNode.parentNode.removeChild(leftgui.__folders.Shape.__folders.Coefficients.domElement.parentNode);
-  leftgui.__folders.Shape.__folders.Coefficients = undefined;
+  leftgui.__folders.Shape.removeFolder(leftgui.__folders.Shape.__folders.Coefficients);
   leftgui.__folders.Shape.onResize();
   var subFolder = leftgui.__folders.Shape.addFolder('Coefficients');
   for (var i=0; i<shapeParams.coeffCount; i++) {
@@ -108,7 +120,11 @@ function cameraFolder(g) {
   folder.add(cameraParams, 'radius').min(0).max(10).step(0.01);
   folder.add(cameraParams, 'speed').min(0).max(10).step(0.01);
   folder.add(cameraParams, 'axes');
-  folder.addColor(cameraParams, 'background').onChange( updateBackground ).listen();
+  // A native RGB picker avoids the upstream ColorController's retained global
+  // mouseup closure while preserving a simple background-color control.
+  var background = folder.add(cameraParams, 'background').onChange(updateBackground).listen();
+  background.__input.type = 'color';
+  background.__input.addEventListener('input', function() { background.setValue(this.value); });
   folder.add(cameraParams, 'fps').onChange( updateStats );
 }
 
@@ -139,9 +155,9 @@ function buildRightGUI() {
   } else {
     //for (obj in rightgui.__folders) { ... }
     var closedState = { Transforms: rightgui.__folders.Transforms.closed };
-    rightgui.destroy();
+    destroyGUI(rightgui);
   }
-  rightgui = new dat.GUI();
+  rightgui = new dat.GUI({hideable:false});
 
   validatedNumberControl(rightgui, transformParams, 'zoom', requireZoom, setCoordsDirty).min(0.000001);
 
