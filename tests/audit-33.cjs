@@ -36,3 +36,7 @@ const finishFolder={add(){return {onChange(fn){change=fn;},onFinishChange(fn){fi
 c.validatedNumberControl(finishFolder,object,'resolution',c.requireResolution,()=>finished++,true);
 object.resolution=NaN;change(NaN);assert.equal(object.resolution,4);finish();assert.equal(finished,0);
 object.resolution=5;change(5);assert.equal(finished,0);finish();assert.equal(finished,1);
+
+let argumentsSeen;const bounded={add(...args){argumentsSeen=args;return {onChange(){},onFinishChange(){}};}};
+c.validatedNumberControl(bounded,object,'resolution',c.requireResolution,()=>{},true,[2,65,1]);
+assert.deepEqual(argumentsSeen,[object,'resolution',2,65,1]);
