@@ -19,7 +19,7 @@ function importedDimensionState(groups) {
  if (!Number.isInteger(resolution) || resolution < 2 || resolution > 65) throw new Error('Resolution must be between 2 and 65');
  if (importedShape && importedShape.coeff !== undefined) {
   if (!Array.isArray(importedShape.coeff) || !importedShape.coeff.every(Number.isFinite) ||
-      importedShape.coeff.length < 6 || importedShape.coeff.length > 32 ||
+      importedShape.coeff.length > 32 ||
       (importedShape.coeffCount !== undefined && importedShape.coeffCount !== importedShape.coeff.length)) throw new Error('Invalid coefficients');
  }
  if (!Array.isArray(stack)) throw new Error('Invalid transform stack');
