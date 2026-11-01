@@ -13,8 +13,11 @@ async function runIsoVisBenchmark(app, options) {
     hardwareConcurrency:navigator.hardwareConcurrency,deviceMemoryGiB:navigator.deviceMemory||null,
     gpu:debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):'unavailable',
     viewport:[app.innerWidth,app.innerHeight],workerCount:app.workers.length,
-    settings:{resolutions:options.resolutions,repetitions:options.repetitions,warmups:options.warmups,pauseMs:options.pauseMs},cases:[]};
+    settings:{resolutions:options.resolutions,repetitions:options.repetitions,warmups:options.warmups,pauseMs:options.pauseMs},
+    initialSession:JSON.parse(JSON.stringify({shapeParams:app.shapeParams,cameraParams:app.cameraParams,
+      materialParams:app.materialParams,transformParams:app.transformParams,transforms:app.transforms,baseOrientation:app.baseOrientation})),cases:[]};
   const fields=[{name:'default',source:app.defaultFieldBody()},{name:'sphere',source:'for(var i=0,j=0;i<size3;i++,j+=n) values[i]=x[j]*x[j]+x[j+1]*x[j+1]+x[j+2]*x[j+2]-9;'}];
+  result.fields=fields.map(field=>({name:field.name,source:field.source}));
   const original=app.handleWorkerMessage;
   let complete=null,handling=0,start=0,frameGaps=[],lastFrame=null,tracking=false,raf=null;
   function tick(time){if(tracking&&lastFrame!==null)frameGaps.push(time-lastFrame);lastFrame=time;raf=requestAnimationFrame(tick);}
