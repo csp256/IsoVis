@@ -30,8 +30,9 @@ macOS, Linux, and Windows (x64/ARM64), and installs tools only in `.ci_tools/`.
 Run `just ci` to reproduce it locally. No global installation or shell installer
 is performed.
 
-The retained GitHub workflow additionally checks Linux and Windows when a branch
-is pushed there. GitHub is not automatically synchronized by a GitLab push.
+The retained GitHub workflow additionally checks Linux and Windows for GitHub
+pull requests, main pushes, or manual runs. GitHub is not automatically
+synchronized by a GitLab push.
 A failing compiler, stale output, or failing assertion fails either pipeline.
 No browser benchmark runs in CI.
 
