@@ -20,3 +20,8 @@
 *.PDF	 diff=astextplain
 *.rtf	 diff=astextplain
 *.RTF	 diff=astextplain
+
+# Preserve exact upstream bytes, including on Windows; fold vendored diffs.
+# Upstream indentation is not application formatting policy.
+lib/three-r187/*.js -text -whitespace linguist-vendored
+lib/three-r187/LICENSE -text

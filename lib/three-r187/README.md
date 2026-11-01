@@ -13,3 +13,7 @@ Browser imports use the import map in IsoVis.html. Application compatibility
 settings live in js/renderer.js; module startup/namespace bridging lives in
 js/bootstrap.js. License: MIT, retained in LICENSE. The unneeded legacy r73
 bundle, controls and Detector were removed; use Git history for the baseline.
+
+.gitattributes disables line-ending conversion for the upstream JS/license files
+so checksums also hold on Windows. Vendored JS is marked for GitHub folding and
+excluded from whitespace lint: upstream core includes one mixed-indent line.
