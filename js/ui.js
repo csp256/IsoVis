@@ -32,7 +32,10 @@ function updateCoeff() {
 
   var c = leftgui.__folders.Shape.__folders.Coefficients.closed;
   leftgui.__folders.Shape.__folders.Coefficients.close();
-  leftgui.__folders.Shape.__folders.Coefficients.domElement.parentNode.parentNode.removeChild(leftgui.__folders.Shape.__folders.Coefficients.domElement.parentNode);
+  var oldFolder = leftgui.__folders.Shape.__folders.Coefficients;
+  var oldRow = oldFolder.domElement.parentNode;
+  oldFolder.destroy();
+  if (oldRow && oldRow.parentNode) oldRow.parentNode.removeChild(oldRow);
   leftgui.__folders.Shape.__folders.Coefficients = undefined;
   leftgui.__folders.Shape.onResize();
   var subFolder = leftgui.__folders.Shape.addFolder('Coefficients');
